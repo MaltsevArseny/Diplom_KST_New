@@ -53,6 +53,12 @@
             <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -131,6 +137,7 @@
                     <argLine>
                         @{argLine}
                         --add-reads techhaven=ALL-UNNAMED
+                        --add-modules javafx.graphics
                         --add-opens techhaven/com.techhaven.model=ALL-UNNAMED
                         --add-opens techhaven/com.techhaven.security=ALL-UNNAMED
                         --add-opens techhaven/com.techhaven.service=ALL-UNNAMED

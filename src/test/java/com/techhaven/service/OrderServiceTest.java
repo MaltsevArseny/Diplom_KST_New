@@ -1,5 +1,8 @@
 package com.techhaven.service;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -12,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.techhaven.config.DatabaseManager;
 import com.techhaven.config.SessionManager;
 import com.techhaven.model.Order;
 import com.techhaven.model.OrderItem;
@@ -30,6 +34,23 @@ class OrderServiceTest {
         SessionManager.getInstance().login(user);
         // Очищаем корзину для изоляции тестов
         new CartRepository().clearCart(1);
+        // Восстанавливаем stock тестовых товаров (мог быть списан предыдущими прогонами)
+        restoreStock(200, 201, 202, 203, 204);
+    }
+
+    /** Восстановить stock_quantity до 10 для указанных товаров */
+    private void restoreStock(int... productIds) {
+        String sql = "UPDATE Products SET stock_quantity = 10 WHERE id = ?";
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int id : productIds) {
+                ps.setInt(1, id);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        } catch (SQLException e) {
+            throw new RuntimeException("Не удалось восстановить stock для тестов", e);
+        }
     }
 
     @AfterEach
