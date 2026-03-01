@@ -1,0 +1,38 @@
+# Maven build output
+target/
+
+# jpackage artifacts
+jpackage-input/*.jar
+
+# SQLite database files (runtime data, not for version control)
+digitalhub.db
+dist/digitalhub.db
+
+# Compiled class files
+*.class
+
+# IDE files
+.vscode/
+.settings/
+.project
+.classpath
+*.iml
+.idea/
+
+# Временные файлы тестирования
+test_*.txt
+test_*.log
+*.flag
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Unnecessary files in project root
+ListCat.java
+
+# Build artifacts in dist
+dist/src/
+
+# Unused images
+product_images/

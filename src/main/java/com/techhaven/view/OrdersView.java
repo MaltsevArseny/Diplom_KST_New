@@ -1,0 +1,439 @@
+package com.techhaven.view;
+
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.techhaven.model.Order;
+import com.techhaven.model.OrderItem;
+import com.techhaven.model.OrderStatusHistory;
+import com.techhaven.service.OrderService;
+
+import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Parent;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TitledPane;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+
+public class OrdersView {
+    private final MainLayout mainLayout;
+    private final OrderService orderService = new OrderService();
+    private VBox ordersList;
+
+    private static final String[] ALL_STATUSES = {
+        "Все", "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён", "Отменён"
+    };
+
+    private static final List<String> STATUS_ORDER = List.of(
+        "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён", "Отменён"
+    );
+
+    private static final int PAGE_SIZE = 10;
+
+    /** Количество колонок карточек и базовый размер шрифта — вычисляются по ширине экрана */
+    private int cardColumns;
+    private int baseFontSize;
+
+    private void calcResponsiveParams() {
+        double screenW = javafx.stage.Screen.getPrimary().getBounds().getWidth();
+        if (screenW >= 1920) { cardColumns = 5; baseFontSize = 12; }
+        else if (screenW >= 1600) { cardColumns = 4; baseFontSize = 12; }
+        else if (screenW >= 1280) { cardColumns = 4; baseFontSize = 11; }
+        else if (screenW >= 1024) { cardColumns = 3; baseFontSize = 11; }
+        else { cardColumns = 3; baseFontSize = 10; }
+    }
+
+    public OrdersView(MainLayout mainLayout) {
+        this.mainLayout = mainLayout;
+    }
+
+    public Parent getView() {
+        calcResponsiveParams();
+        VBox root = new VBox(16);
+        root.setPadding(new Insets(20));
+
+        HBox topBar = new HBox(12);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
+        Label heading = new Label("📦 Мои заказы");
+        heading.getStyleClass().add("heading");
+
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+
+        Label filterLabel = new Label("Фильтр:");
+        filterLabel.setStyle("-fx-text-fill: #a0a0b8;");
+        
+        ComboBox<String> statusFilter = new ComboBox<>(FXCollections.observableArrayList(ALL_STATUSES));
+        statusFilter.setValue("Все");
+        statusFilter.setPrefWidth(150);
+        statusFilter.setOnAction(e -> renderOrders(statusFilter.getValue()));
+
+        topBar.getChildren().addAll(heading, sp, filterLabel, statusFilter);
+
+        this.ordersList = new VBox(12);
+        renderOrders("Все");
+
+        ScrollPane scroll = new ScrollPane(ordersList);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        root.getChildren().addAll(topBar, scroll);
+        return root;
+    }
+
+    private void renderOrders(String filter) {
+        ordersList.getChildren().clear();
+        List<Order> orders = orderService.getMyOrders();
+
+        if (orders.isEmpty()) {
+            VBox empty = new VBox(12);
+            empty.setAlignment(Pos.CENTER);
+            empty.setPadding(new Insets(60));
+            Label emptyLabel = new Label("У вас пока нет заказов");
+            emptyLabel.getStyleClass().add("empty-state");
+            Button goShop = new Button("Перейти в каталог");
+            goShop.getStyleClass().add("btn-primary");
+            goShop.setTooltip(new javafx.scene.control.Tooltip("Открыть каталог товаров"));
+            goShop.setOnAction(e -> mainLayout.showCatalog());
+            empty.getChildren().addAll(emptyLabel, goShop);
+            ordersList.getChildren().add(empty);
+            return;
+        }
+
+        // Фильтрация
+        List<Order> filtered = orders.stream()
+            .filter(o -> "Все".equals(filter) || filter.equals(o.getStatus()))
+            .sorted(Comparator.comparing(Order::getOrderDate).reversed())
+            .collect(Collectors.toList());
+
+        if (filtered.isEmpty()) {
+            Label noMatch = new Label("Нет заказов со статусом \"" + filter + "\"");
+            noMatch.getStyleClass().add("label-secondary");
+            noMatch.setPadding(new Insets(40));
+            ordersList.getChildren().add(noMatch);
+            return;
+        }
+
+        // Группировка по статусу
+        Map<String, List<Order>> grouped = new LinkedHashMap<>();
+        for (String s : STATUS_ORDER) {
+            List<Order> group = filtered.stream()
+                .filter(o -> s.equals(o.getStatus()))
+                .collect(Collectors.toList());
+            if (!group.isEmpty()) {
+                grouped.put(s, group);
+            }
+        }
+
+        // Аккордион: TitledPane для каждой группы
+        boolean firstExpanded = true;
+        for (Map.Entry<String, List<Order>> entry : grouped.entrySet()) {
+            String status = entry.getKey();
+            List<Order> groupOrders = entry.getValue();
+            String accent = statusAccentColor(status);
+
+            TitledPane section = new TitledPane();
+            section.setText(status.toUpperCase() + " (" + groupOrders.size() + ")");
+            section.setExpanded(firstExpanded);
+            section.setAnimated(true);
+            section.setStyle("-fx-text-fill: " + accent + ";");
+            firstExpanded = false;
+
+            VBox sectionContent = new VBox(6);
+            sectionContent.setPadding(new Insets(4));
+
+            // FlowPane для карточек (5 колонок)
+            FlowPane cardsPane = new FlowPane();
+            cardsPane.setHgap(6);
+            cardsPane.setVgap(6);
+
+            // Ленивая подгрузка: первые PAGE_SIZE карточек
+            int initialCount = Math.min(PAGE_SIZE, groupOrders.size());
+            for (int i = 0; i < initialCount; i++) {
+                VBox card = createOrderCard(groupOrders.get(i));
+                card.prefWidthProperty().bind(
+                    cardsPane.widthProperty().subtract((cardColumns - 1) * 6 + 6).divide(cardColumns)
+                );
+                card.setMaxWidth(Double.MAX_VALUE);
+                card.setStyle(card.getStyle() + "-fx-border-color: " + accent + " transparent transparent transparent; -fx-border-width: 3 0 0 0;");
+                cardsPane.getChildren().add(card);
+            }
+
+            sectionContent.getChildren().add(cardsPane);
+
+            // Кнопка "Показать ещё" если есть ещё карточки
+            if (groupOrders.size() > PAGE_SIZE) {
+                final int[] loaded = {initialCount};
+                Button showMore = new Button("Показать ещё (" + (groupOrders.size() - initialCount) + ")");
+                showMore.getStyleClass().add("btn-secondary");
+                showMore.setMaxWidth(Double.MAX_VALUE);
+                showMore.setStyle("-fx-background-color: #2a2a3e; -fx-text-fill: " + accent + "; -fx-cursor: hand; -fx-padding: 6;");
+
+                showMore.setOnAction(e -> {
+                    int nextBatch = Math.min(loaded[0] + PAGE_SIZE, groupOrders.size());
+                    for (int i = loaded[0]; i < nextBatch; i++) {
+                        VBox card = createOrderCard(groupOrders.get(i));
+                        card.prefWidthProperty().bind(
+                            cardsPane.widthProperty().subtract((cardColumns - 1) * 6 + 6).divide(cardColumns)
+                        );
+                        card.setMaxWidth(Double.MAX_VALUE);
+                        card.setStyle(card.getStyle() + "-fx-border-color: " + accent + " transparent transparent transparent; -fx-border-width: 3 0 0 0;");
+                        cardsPane.getChildren().add(card);
+                    }
+                    loaded[0] = nextBatch;
+                    int remaining = groupOrders.size() - loaded[0];
+                    if (remaining <= 0) {
+                        sectionContent.getChildren().remove(showMore);
+                    } else {
+                        showMore.setText("Показать ещё (" + remaining + ")");
+                    }
+                });
+
+                sectionContent.getChildren().add(showMore);
+            }
+
+            section.setContent(sectionContent);
+            ordersList.getChildren().add(section);
+        }
+    }
+
+    private VBox createOrderCard(Order order) {
+            int bf = baseFontSize;
+            int sf = bf - 1; // мелкий
+            int tf = bf + 1; // крупный
+
+            VBox card = new VBox(3);
+            card.getStyleClass().add("card");
+            card.setPadding(new Insets(5));
+
+            // Заголовок
+            HBox header = new HBox(4);
+            header.setAlignment(Pos.CENTER_LEFT);
+
+            Label orderNum = new Label("#" + order.getId());
+            orderNum.setStyle("-fx-font-size: " + bf + "px; -fx-font-weight: bold; -fx-text-fill: #f0f0f0;");
+
+            Label statusBadge = new Label(order.getStatus());
+            statusBadge.setStyle(statusBadgeStyle(order.getStatus()) + "-fx-font-size: " + sf + "px; -fx-padding: 2 5;");
+
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            Label dateLabel = new Label(formatDateStr(order.getOrderDate()));
+            dateLabel.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: " + sf + "px;");
+
+            header.getChildren().addAll(orderNum, statusBadge, spacer, dateLabel);
+
+            // Инфо-блок доставки
+            VBox deliveryInfo = new VBox(2);
+            deliveryInfo.setStyle("-fx-background-color: #2a2a3e; -fx-padding: 4; -fx-background-radius: 4;");
+
+            Label deliveryTitle = new Label("📍 Доставка");
+            deliveryTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #a78bfa; -fx-font-size: " + bf + "px;");
+
+            Label addrLbl = new Label(order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "—");
+            addrLbl.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: " + bf + "px;");
+            addrLbl.setWrapText(true);
+
+            Label phoneLbl = new Label(order.getContactPhone() != null ? order.getContactPhone() : "—");
+            phoneLbl.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: " + bf + "px;");
+
+            deliveryInfo.getChildren().addAll(deliveryTitle, addrLbl, phoneLbl);
+
+            if (order.getComment() != null && !order.getComment().trim().isEmpty()) {
+                Label commentLbl = new Label("💬 " + order.getComment());
+                commentLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-style: italic; -fx-font-size: " + sf + "px;");
+                commentLbl.setWrapText(true);
+                deliveryInfo.getChildren().add(commentLbl);
+            }
+
+            // Ожидаемая дата от администратора
+            if (order.getPlannedDeliveryDate() != null || order.getPlannedDeliveryInterval() != null) {
+                String pDate = formatDateStr(order.getPlannedDeliveryDate());
+                String pTime = order.getPlannedDeliveryInterval() != null ? order.getPlannedDeliveryInterval() : "";
+                Label plannedValue = new Label("🗓 " + pDate + " " + pTime);
+                plannedValue.setStyle("-fx-text-fill: #10b981; -fx-font-size: " + bf + "px; -fx-font-weight: bold;");
+                deliveryInfo.getChildren().add(plannedValue);
+            }
+
+            // Итого
+            Label total = new Label(order.getFormattedTotal());
+            total.setStyle("-fx-font-size: " + tf + "px; -fx-font-weight: bold; -fx-text-fill: #10b981;");
+
+            // Позиции
+            TitledPane itemsPane = new TitledPane();
+            itemsPane.setText("Состав заказа");
+            itemsPane.setExpanded(false);
+            itemsPane.setStyle("-fx-text-fill: #a0a0b8;");
+
+            VBox itemsBox = new VBox(8);
+            List<OrderItem> items = orderService.getOrderItems(order.getId());
+            for (OrderItem item : items) {
+                HBox row = new HBox(10);
+                row.setAlignment(Pos.CENTER_LEFT);
+                
+                Button itemLink = new Button(item.getProductName());
+                itemLink.setStyle("-fx-background-color: transparent; -fx-text-fill: #60a5fa; -fx-cursor: hand; -fx-padding: 0; -fx-underline: true;");
+                itemLink.setOnAction(e -> mainLayout.showProductDetail(item.getProductId()));
+                
+                Label qtyLbl = new Label(" × " + item.getQuantity());
+                qtyLbl.setStyle("-fx-text-fill: #a0a0b8;");
+                
+                Region sp = new Region();
+                HBox.setHgrow(sp, Priority.ALWAYS);
+                
+                Label subtotal = new Label(item.getFormattedSubtotal());
+                subtotal.setStyle("-fx-text-fill: #f0f0f0; -fx-font-weight: bold;");
+                
+                row.getChildren().addAll(itemLink, qtyLbl, sp, subtotal);
+                itemsBox.getChildren().add(row);
+            }
+            itemsPane.setContent(itemsBox);
+
+            // История статусов — прогресс-трекер
+            TitledPane historyPane = new TitledPane();
+            historyPane.setText("История статусов");
+            historyPane.setExpanded(false);
+
+            List<OrderStatusHistory> history = orderService.getStatusHistory(order.getId());
+            String currentStatus = order.getStatus();
+            boolean isCancelled = "Отменён".equals(currentStatus);
+
+            // Выбираем путь: стандартный или «Отменен»
+            List<String> path = isCancelled
+                ? List.of("Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён", "Отменён")
+                : List.of("Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён");
+
+            int currentIdx = path.indexOf(currentStatus);
+
+            VBox historyBox = new VBox(0);
+
+            for (int si = 0; si < path.size(); si++) {
+                String stepStatus = path.get(si);
+                boolean isDone    = si < currentIdx || (si == currentIdx && !isCancelled);
+                boolean isCurrent = si == currentIdx;
+
+                // --- Цвета и иконка ---
+                String dotColor, textColor, dotIcon;
+                if (isCancelled && isCurrent) {
+                    dotColor = "#ef4444"; textColor = "#ef4444"; dotIcon = "×";
+                } else if (isDone) {
+                    dotColor = "#10b981"; textColor = "#10b981"; dotIcon = "✓";
+                } else if (isCurrent) {
+                    dotColor = "#7c3aed"; textColor = "#f0f0f0"; dotIcon = "●";
+                } else {
+                    dotColor = "#3a3a50"; textColor = "#6b7280"; dotIcon = "○";
+                }
+
+                // --- Индикатор шага ---
+                Label dot = new Label(dotIcon);
+                dot.setStyle(
+                    "-fx-text-fill: " + dotColor + "; -fx-font-size: 12px; -fx-font-weight: bold;" +
+                    "-fx-min-width: 20; -fx-alignment: center;"
+                );
+
+                Label stepLabel = new Label(stepStatus);
+                stepLabel.setStyle(
+                    "-fx-text-fill: " + textColor + "; -fx-font-size: 11px;" +
+                    (isCurrent ? " -fx-font-weight: bold;" : "")
+                );
+
+                // Подпись даты под шагом
+                VBox stepTextBox = new VBox(1, stepLabel);
+                history.stream()
+                    .filter(h -> stepStatus.equals(h.getStatus()))
+                    .findFirst()
+                    .ifPresent(h -> {
+                        if (h.getChangedAt() != null) {
+                            // Форматируем дату: dd.MM.yyyy HH:mm
+                            String raw = h.getChangedAt(); // "2025-02-28T13:45:00" или "2025-02-28 13:45:00"
+                            String formatted = raw;
+                            try {
+                                // Единый парсинг: поддерживаем оба формата
+                                String normalized = raw.replace("T", " ").replaceAll("\\.\\d+$", "");
+                                java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(
+                                    normalized,
+                                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                );
+                                formatted = ldt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+                            } catch (Exception ignored) {}
+                            Label dateLbl = new Label(formatted);
+                            dateLbl.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11px;");
+                            stepTextBox.getChildren().add(dateLbl);
+                        }
+                    });
+
+                HBox stepRow = new HBox(6, dot, stepTextBox);
+                stepRow.setAlignment(Pos.CENTER_LEFT);
+                stepRow.setPadding(new Insets(3, 6, 3, 6));
+                if (isCurrent) {
+                    stepRow.setStyle(
+                        "-fx-background-color: rgba(124,58,237,0.12); -fx-background-radius: 8;"
+                    );
+                }
+
+                historyBox.getChildren().add(stepRow);
+
+                // Соединительная линия между шагами (не после последнего)
+                if (si < path.size() - 1) {
+                    Label line = new Label("");
+                    line.setStyle(
+                        "-fx-border-color: " + (si < currentIdx ? "#10b981" : "#3a3a50") + ";" +
+                        "-fx-border-width: 0 0 0 2; -fx-min-height: 12; -fx-padding: 0 0 0 19;"
+                    );
+                    historyBox.getChildren().add(line);
+                }
+            }
+            historyPane.setContent(historyBox);
+
+            card.getChildren().addAll(header, deliveryInfo, total, itemsPane, historyPane);
+            return card;
+    }
+
+    /** Цвет акцента для каждого статуса заказа */
+    private String statusAccentColor(String status) {
+        if (status == null) return "#a0a0b8";
+        return switch (status) {
+            case "Новый"         -> "#3b82f6"; // blue
+            case "В обработке"   -> "#f97316"; // orange
+            case "Подтверждён"   -> "#a855f7"; // purple
+            case "Собран"        -> "#eab308"; // yellow
+            case "Отправлен"     -> "#ec4899"; // pink
+            case "Доставлен"     -> "#22c55e"; // green
+            case "Завершён"      -> "#14b8a6"; // teal
+            case "Отменён"       -> "#ef4444"; // red
+            default              -> "#a0a0b8";
+        };
+    }
+
+    /** Инлайн-стиль бейджа статуса заказа (единый с AdminOrdersView) */
+    private String statusBadgeStyle(String status) {
+        String color = statusAccentColor(status);
+        return "-fx-background-color: " + color + "; -fx-text-fill: white;" +
+               "-fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 2 8; -fx-font-size: 13px; ";
+    }
+
+    /** Форматирует строку даты из БД (yyyy-MM-dd...) в dd.MM.yyyy */
+    private static String formatDateStr(String raw) {
+        if (raw == null || raw.isEmpty()) return "—";
+        try {
+            java.time.LocalDate d = java.time.LocalDate.parse(raw.substring(0, Math.min(10, raw.length())));
+            return d.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        } catch (Exception e) {
+            return raw;
+        }
+    }
+}
