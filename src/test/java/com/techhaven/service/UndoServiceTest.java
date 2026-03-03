@@ -10,6 +10,7 @@ class UndoServiceTest {
 
     private UndoService undoService;
 
+    @SuppressWarnings("unused")
     @BeforeEach
     void setUp() {
         undoService = UndoService.getInstance();

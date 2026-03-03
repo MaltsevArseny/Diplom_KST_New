@@ -27,6 +27,7 @@ class FavoriteRepositoryTest {
     private static final int PROD_B = 2;
     private static final int PROD_C = 3;
 
+    @SuppressWarnings("unused")
     @BeforeEach
     void setup() {
         favRepo.remove(TEST_USER, PROD_A);
@@ -34,6 +35,7 @@ class FavoriteRepositoryTest {
         favRepo.remove(TEST_USER, PROD_C);
     }
 
+    @SuppressWarnings("unused")
     @AfterEach
     void cleanup() {
         favRepo.remove(TEST_USER, PROD_A);

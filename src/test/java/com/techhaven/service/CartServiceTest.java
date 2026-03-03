@@ -19,6 +19,7 @@ class CartServiceTest {
 
     private final CartService cartService = new CartService();
 
+    @SuppressWarnings("unused")
     @BeforeEach
     void loginTestUser() {
         // Use seed user id=1 (exists in DB)
@@ -27,6 +28,7 @@ class CartServiceTest {
         SessionManager.getInstance().login(user);
     }
 
+    @SuppressWarnings("unused")
     @AfterEach
     void logout() {
         SessionManager.getInstance().logout();

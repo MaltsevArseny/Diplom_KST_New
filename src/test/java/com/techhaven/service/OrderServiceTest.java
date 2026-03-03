@@ -53,6 +53,7 @@ class OrderServiceTest {
         }
     }
 
+    @SuppressWarnings("unused")
     @AfterEach
     void logout() {
         SessionManager.getInstance().logout();

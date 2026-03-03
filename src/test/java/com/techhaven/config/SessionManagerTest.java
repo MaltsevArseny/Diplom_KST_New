@@ -12,6 +12,7 @@ import com.techhaven.model.User;
 
 class SessionManagerTest {
 
+    @SuppressWarnings("unused")
     @AfterEach
     void cleanup() {
         SessionManager.getInstance().logout();
