@@ -263,7 +263,7 @@ public class RegisterView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button minimizeBtn = new Button("—");
+        Button minimizeBtn = new Button("_");
         minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
         minimizeBtn.setOnMouseEntered(e -> minimizeBtn.setStyle("-fx-background-color: #3f3f5a; -fx-text-fill: #e2e8f0; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
         minimizeBtn.setOnMouseExited(e -> minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));

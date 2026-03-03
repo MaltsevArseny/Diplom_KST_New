@@ -1,8 +1,8 @@
 package com.techhaven.view;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import com.techhaven.model.Product;
@@ -207,7 +207,7 @@ public class CatalogView {
         Map<String, List<Product>> grouped = products.stream()
             .collect(Collectors.groupingBy(
                 p -> p.getCategory() != null ? p.getCategory() : "Прочее",
-                LinkedHashMap::new,
+                TreeMap::new,
                 Collectors.toList()
             ));
 

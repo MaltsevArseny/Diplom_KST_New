@@ -89,7 +89,7 @@ public class AdminLayout {
         String winBtnBase = "-fx-background-color:transparent;-fx-text-fill:#a0a0b8;" +
                             "-fx-font-size:14px;-fx-padding:2 10;-fx-cursor:hand;" +
                             "-fx-background-radius:4;-fx-min-width:32;-fx-pref-width:32;";
-        Button minBtn = new Button("—");
+        Button minBtn = new Button("_");
         minBtn.setStyle(winBtnBase);
         minBtn.setOnMouseEntered(e -> minBtn.setStyle(winBtnBase + "-fx-background-color:#2d2d48;"));
         minBtn.setOnMouseExited(e  -> minBtn.setStyle(winBtnBase));
