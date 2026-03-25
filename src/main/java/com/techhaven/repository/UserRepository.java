@@ -238,9 +238,19 @@ public class UserRepository implements IUserRepository {
         }
     }
 
-    /** Блокирует пользователя вручную (lock_until +99 лет, локальное время) */
+    /**
+     * Блокирует пользователя вручную (lock_until +99 лет, локальное время).
+     *
+     * @throws IllegalArgumentException если администратор пытается заблокировать себя
+     */
     @Override
     public void lockUser(int userId, String reason) {
+        // Защита от самоблокировки: admin не должен мочь заблокировать себя
+        int currentUserId = com.techhaven.config.SessionManager.getInstance().getCurrentUserId();
+        if (currentUserId != -1 && userId == currentUserId) {
+            throw new IllegalArgumentException("Администратор не может заблокировать собственную учётную запись");
+        }
+
         String lockUntil = java.time.LocalDateTime.now().plusYears(99)
             .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String safeReason = (reason == null || reason.isBlank()) ? "Заблокировано администратором" : reason.trim();

@@ -2,7 +2,7 @@
 
 > **Аудитория**: разработчики · системные администраторы · аналитики · тестировщики · специалисты сопровождения  
 > **Пользовательская документация**: [UserManual.md](UserManual.md) · [AdminManual.md](AdminManual.md)  
-> **Техническое задание**: [ТЕХНИЧЕСКОЕ ЗАДАНИЕ.txt](ТЕХНИЧЕСКОЕ%20ЗАДАНИЕ.txt)
+> **Техническое задание**: [ТЕХНИЧЕСКОЕ ЗАДАНИЕ.txt](docs/ТЕХНИЧЕСКОЕ%20ЗАДАНИЕ.txt)
 
 ---
 
@@ -14,13 +14,14 @@ DigitalHub — автономное desktop-приложение для прод
 | Параметр | Значение |
 |---|---|
 | Версия | 3.1 |
-| Платформа | Windows 10/11 (64-bit) |
+| Платформа | Windows 10/11, Linux, macOS (Java cross-platform) |
 | Java | 21 LTS (OpenJDK / Temurin) |
 | UI-фреймворк | JavaFX 21.0.5 |
 | БД | SQLite 3 (через JDBC), схема в 3НФ |
 | Сборка | Apache Maven 3.8+ |
 | Паттерн | MVVM (Model–View–ViewModel) |
 | Артефакт сборки | `dist/DigitalHub.jar` (FAT JAR) |
+| История изменений | [CHANGELOG.md](docs/CHANGELOG.md) |
 
 ---
 
@@ -48,7 +49,8 @@ Diplom_KST_New/
 │   │   ├── CartService.java
 │   │   ├── FavoriteService.java
 │   │   ├── OrderService.java
-│   │   └── ProductService.java
+│   │   ├── ProductService.java
+│   │   └── ProductCache.java     # In-memory кэш категорий (Singleton, thread-safe)
 │   └── view/                     # JavaFX экраны
 │       ├── MainLayout.java       # Навбар + контент-область (пользователь)
 │       ├── AdminLayout.java      # Топбар + сайдбар + контент-область (администратор)
@@ -63,12 +65,22 @@ Diplom_KST_New/
 ├── dist/
 │   ├── DigitalHub.jar            # FAT JAR (генерируется при сборке)
 │   ├── digitalhub.db             # Единственная БД приложения
-│   └── DigitalHub.bat            # Запуск из папки dist/
-├── run.bat                       # Сборка + запуск из корня проекта
+│   ├── DigitalHub.bat            # Запуск из папки dist/ (автопоиск Java)
+│   └── jre/                      # Portable JRE 21 (Temurin) — Java не нужна на ПК
+├── docs/                          # Документация проекта
+│   ├── CHANGELOG.md              # История версий
+│   ├── DATABASE_SCHEMA.md        # Описание схемы БД
+│   ├── ПОЯСНИТЕЛЬНАЯ_ЗАПИСКА.md  # Пояснительная записка диплома
+│   ├── ПЛАН_ВЫСТУПЛЕНИЯ.md      # План выступления
+│   └── ТЕХНИЧЕСКОЕ ЗАДАНИЕ.txt   # Техническое задание
+├── scripts/                       # Скрипты сборки и запуска
+│   ├── run.bat                   # Сборка + запуск (Windows)
+│   ├── run.sh                    # Сборка + запуск (Linux / macOS)
+│   └── run_tests.bat             # Запуск тестов (Windows)
 ├── pom.xml
-├── UserManual.md                 # Руководство пользователя
-├── AdminManual.md                # Руководство администратора
-└── ТЕХНИЧЕСКОЕ ЗАДАНИЕ.txt
+├── UserManual.md                 # Руководство пользователя (используется в приложении)
+├── AdminManual.md                # Руководство администратора (используется в приложении)
+└── README.md
 ```
 
 ---
@@ -98,20 +110,55 @@ Maven  3.8+   — https://maven.apache.org/
 
 ### 4.2 Способы запуска
 
-| Способ | Команда / Файл | Рабочая директория |
+| Способ | Команда / Файл | Платформа |
 |---|---|---|
-| Основной скрипт | `run.bat` | Корень проекта |
-| Из дистрибутива | `dist\DigitalHub.bat` | `dist\` |
-| Напрямую | `java -Ddb.path=dist/digitalhub.db -jar dist\DigitalHub.jar` | Корень проекта |
-| Maven compile only | `mvn compile` | Корень проекта |
+| **Из дистрибутива (рекомендуется)** | `dist\DigitalHub.bat` | Windows |
+| Основной скрипт (сборка + запуск) | `scripts\run.bat` | Windows |
+| Кросс-платформенный | `bash scripts/run.sh` | Linux / macOS |
+| Напрямую | `java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar` | Любая |
+| Maven compile only | `mvn compile` | Любая |
 
-### 4.3 Что делает `run.bat`
+### 4.3 Что делает `dist\DigitalHub.bat`
 
-1. `mvn clean package -q` — полная сборка, FAT JAR → `dist/DigitalHub.jar`
-2. `java -Ddb.path=dist/digitalhub.db -jar dist\DigitalHub.jar` — запуск
+`DigitalHub.bat` ищет Java 21 в следующем порядке:
+1. `dist\jre\bin\java.exe` — **portable JRE** в папке рядом со скриптом (приоритет)
+2. Папки `%ProgramFiles%` — Eclipse Adoptium, Microsoft, Oracle, OpenJDK (jdk-21*)
+3. Переменная `JAVA_HOME`
+4. `java` из системного `PATH`
+
+Если Java не найдена — выводит ссылку: `https://adoptium.net`
+
+### 4.4 Что делает `scripts\run.bat` / `scripts/run.sh`
+
+1. Проверяет наличие Java 21+ и Maven в PATH
+2. `mvn clean package -q` — полная сборка, FAT JAR → `dist/DigitalHub.jar`
+3. `java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar` — запуск
 
 > **Системное свойство `-Ddb.path`** — путь к БД, читается в `DatabaseManager.java`.  
 > Default: `dist/digitalhub.db`. При запуске из `dist\DigitalHub.bat` передаётся `db.path=digitalhub.db`.
+
+### 4.5 Запуск на Linux / macOS
+
+```bash
+# Сделать скрипт исполняемым (один раз):
+chmod +x scripts/run.sh
+
+# Сборка + запуск:
+./scripts/run.sh
+
+# Или запустить уже собранный JAR напрямую:
+java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar
+```
+
+> **Примечание:** JavaFX требует наличия нативных библиотек для текущей ОС. FAT JAR собирается с зависимостями, но для работы на Linux/macOS необходимо установить графическую среду (GTK/X11 на Linux или macOS 12+).
+
+### 4.6 Как обновить приложение
+
+1. Скачайте новую версию исходного кода (или выполните `git pull`)
+2. Запустите `scripts\run.bat` (Windows) или `./scripts/run.sh` (Linux/macOS) — проект пересоберётся автоматически
+3. База данных (`dist/digitalhub.db`) **не удаляется** — все пользователи и заказы сохраняются
+4. Если после обновления БД выглядит пустой — удалите `dist/digitalhub.db`; при следующем запуске данные пересоздадутся
+5. Историю изменений смотрите в [CHANGELOG.md](docs/CHANGELOG.md)
 
 ---
 
@@ -216,8 +263,8 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 |---|---|
 | Фреймворк | JUnit 5 (junit-jupiter 5.10.2) |
 | Покрытие | JaCoCo 0.8.13 (`mvn verify` → `target/site/jacoco/index.html`) |
-| Тестовых классов | 26 |
-| Тестов всего | 235 |
+| Тестовых классов | 27 |
+| Тестов всего | 247 |
 | Результат | BUILD SUCCESS |
 
 ### Покрытие по пакетам (JaCoCo)
@@ -257,6 +304,7 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 | `CartRepository` | 11 | addToCart, getCartItems, removeFromCart, updateQuantity, clearCart |
 | `FavoriteRepository` | 8 | addFavorite, getFavorites, removeFavorite, isFavorite |
 | `ProductService` | 24 | getAllProducts, search, pagination, categories |
+| `ProductCache` | 12 | cache hit/miss, invalidate, счётчики, конкурентный доступ, неизменяемость |
 | `AuthService` | 11 | Валидация пароля, hash/verify, null/empty |
 | `OrderService` | 30 | placeOrder валидация, success path, чтение заказов, updateStatus |
 | `CartService` | 6 | getCartItems, addToCart, removeFromCart, getTotal, isInCart |

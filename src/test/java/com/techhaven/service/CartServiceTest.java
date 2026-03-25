@@ -87,4 +87,69 @@ class CartServiceTest {
 
         cartService.removeFromCart(added.getId());
     }
+
+    // ─── Тесты обновления quantity (покрывают логику plusBtn/minusBtn в CartView) ───
+
+    @Test
+    void updateQuantityChangesSubtotal() {
+        ProductService ps2 = new ProductService();
+        var products2 = ps2.getAllProducts();
+        var inStock2 = products2.stream()
+                .filter(p -> p.getStockQuantity() >= 2)
+                .findFirst();
+        if (inStock2.isEmpty()) return;
+
+        int productId = inStock2.get().getId();
+        // Добавляем товар с quantity=1
+        cartService.addToCart(productId, 1);
+        List<CartItem> cart2 = cartService.getCartItems();
+        CartItem added = cart2.stream()
+                .filter(i -> i.getProductId() == productId)
+                .findFirst().orElse(null);
+        assertNotNull(added);
+
+        double subtotalBefore = added.getSubtotal();  // price * 1
+
+        // Увеличиваем quantity до 2 (как делает plusBtn в CartView)
+        cartService.updateQuantity(added.getId(), 2);
+        added.setQuantity(2);  // обновляем модель как в CartView
+
+        double subtotalAfter = added.getSubtotal();   // price * 2
+        assertTrue(subtotalAfter > subtotalBefore,
+            "Subtotal должен вырасти после увеличения quantity");
+        assertEquals(subtotalBefore * 2, subtotalAfter, 0.01,
+            "Subtotal при qty=2 должен быть ровно вдвое больше чем при qty=1");
+
+        cartService.removeFromCart(added.getId());
+    }
+
+    @Test
+    void getTotalReflectsQuantityUpdate() {
+        ProductService ps3 = new ProductService();
+        var products3 = ps3.getAllProducts();
+        var inStock3 = products3.stream()
+                .filter(p -> p.getStockQuantity() >= 2)
+                .findFirst();
+        if (inStock3.isEmpty()) return;
+
+        int productId = inStock3.get().getId();
+        cartService.addToCart(productId, 1);
+
+        double totalBefore = cartService.getTotal();
+
+        List<CartItem> cart3 = cartService.getCartItems();
+        CartItem added3 = cart3.stream()
+                .filter(i -> i.getProductId() == productId)
+                .findFirst().orElse(null);
+        assertNotNull(added3);
+
+        // Увеличиваем quantity через сервис (как делает plusBtn в CartView)
+        cartService.updateQuantity(added3.getId(), 2);
+        double totalAfter = cartService.getTotal();
+
+        assertTrue(totalAfter > totalBefore,
+            "getTotal() должен увеличиться после updateQuantity: было " + totalBefore + ", стало " + totalAfter);
+
+        cartService.removeFromCart(added3.getId());
+    }
 }

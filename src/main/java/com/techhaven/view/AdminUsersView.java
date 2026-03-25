@@ -300,20 +300,32 @@ public class AdminUsersView {
                 boolean isLocked = u.getFailedAttempts() >= 5 ||
                     (u.getLockUntil() != null && !u.getLockUntil().isEmpty());
 
+                // Защита от самоблокировки
+                int currentUserId = com.techhaven.config.SessionManager.getInstance().getCurrentUserId();
+                boolean isSelf = u.getId() == currentUserId;
+
                 String baseStyle =
                     "-fx-font-size: 16px; -fx-padding: 4 8;" +
                     "-fx-background-radius: 7; -fx-cursor: hand;";
                 String disabledStyle = baseStyle +
                     "-fx-background-color: #3a3a50; -fx-text-fill: #6b7280; -fx-opacity: 0.6;";
 
-                unlockBtn.setDisable(!isLocked);
-                lockBtn.setDisable(isLocked);
-                unlockBtn.setStyle(isLocked
+                unlockBtn.setDisable(!isLocked || isSelf);
+                lockBtn.setDisable(isLocked || isSelf);
+                unlockBtn.setStyle(isLocked && !isSelf
                     ? baseStyle + "-fx-background-color: #059669; -fx-text-fill: white;"
                     : disabledStyle);
-                lockBtn.setStyle(isLocked
+                lockBtn.setStyle(isLocked || isSelf
                     ? disabledStyle
                     : baseStyle + "-fx-background-color: #dc2626; -fx-text-fill: white;");
+
+                if (isSelf) {
+                    lockBtn.setTooltip(new Tooltip("Нельзя заблокировать собственную учётную запись"));
+                    unlockBtn.setTooltip(new Tooltip("Нельзя манипулировать собственной учётной записью"));
+                } else {
+                    lockBtn.setTooltip(new Tooltip("Заблокировать пользователя"));
+                    unlockBtn.setTooltip(new Tooltip("Разблокировать пользователя"));
+                }
 
                 unlockBtn.setOnAction(e -> { userRepo.unlockUser(u.getId()); loadUsers(); });
                 lockBtn.setOnAction(e   -> AdminUsersView.this.showLockDialog(u));

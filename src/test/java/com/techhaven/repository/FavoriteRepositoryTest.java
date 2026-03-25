@@ -109,9 +109,13 @@ class FavoriteRepositoryTest {
     // ── getFavoriteCount ────────────────────────────────────────
 
     @Test
-    @DisplayName("getFavoriteCount возвращает 0 когда нет избранного")
+    @DisplayName("Тестовые товары отсутствуют в избранном после cleanup")
     void getFavoriteCountReturnsZeroWhenEmpty() {
-        assertEquals(0, favRepo.getFavoriteCount(TEST_USER));
+        // Проверяем конкретные товары, а не общий count
+        // (в БД могут быть другие записи от предыдущих запусков)
+        assertFalse(favRepo.isFavorite(TEST_USER, PROD_A), "PROD_A должен быть удалён после cleanup");
+        assertFalse(favRepo.isFavorite(TEST_USER, PROD_B), "PROD_B должен быть удалён после cleanup");
+        assertFalse(favRepo.isFavorite(TEST_USER, PROD_C), "PROD_C должен быть удалён после cleanup");
     }
 
     @Test

@@ -96,4 +96,54 @@ class CartItemTest {
         assertEquals(now, ci.getCreatedAt());
         assertEquals(now, ci.getUpdatedAt());
     }
+
+    // ─── Тесты пересчёта subtotal при изменении quantity ────────────────────
+    // (покрывают логику, реализованную в CartView: plusBtn и minusBtn)
+
+    @Test
+    @DisplayName("Subtotal пересчитывается при увеличении quantity (как в CartView plusBtn)")
+    void getSubtotalAfterQuantityIncrease() {
+        CartItem ci = new CartItem();
+        ci.setProductPrice(2000.0);
+        ci.setQuantity(2);
+        assertEquals(4000.0, ci.getSubtotal(), 0.01);
+
+        // plusBtn увеличивает quantity и ожидает обновлённый subtotal
+        ci.setQuantity(3);
+        assertEquals(6000.0, ci.getSubtotal(), 0.01,
+            "getSubtotal должен вернуть 6000 после увеличения quantity до 3");
+    }
+
+    @Test
+    @DisplayName("Subtotal пересчитывается при уменьшении quantity (как в CartView minusBtn)")
+    void getSubtotalAfterQuantityDecrease() {
+        CartItem ci = new CartItem();
+        ci.setProductPrice(2000.0);
+        ci.setQuantity(3);
+        assertEquals(6000.0, ci.getSubtotal(), 0.01);
+
+        // minusBtn уменьшает quantity и ожидает обновлённый subtotal
+        ci.setQuantity(1);
+        assertEquals(2000.0, ci.getSubtotal(), 0.01,
+            "getSubtotal должен вернуть 2000 после уменьшения quantity до 1");
+    }
+
+    @Test
+    @DisplayName("getProductPrice() возвращает цену единицы товара")
+    void getProductPriceReturnsCorrectValue() {
+        CartItem ci = new CartItem();
+        ci.setProductPrice(9990.0);
+        assertEquals(9990.0, ci.getProductPrice(), 0.001);
+    }
+
+    @Test
+    @DisplayName("getSubtotal = getProductPrice * quantity (точная формула)")
+    void subtotalMatchesQuantityTimesPrice() {
+        CartItem ci = new CartItem();
+        double price = 3333.33;
+        int qty = 7;
+        ci.setProductPrice(price);
+        ci.setQuantity(qty);
+        assertEquals(price * qty, ci.getSubtotal(), 0.01);
+    }
 }

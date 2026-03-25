@@ -55,7 +55,13 @@ public class CartView {
 
         VBox itemsList = new VBox(16);
 
-        // Группирем по категории
+        // Итог корзины — объявляем ДО цикла, чтобы lambda могли его обновлять
+        double initialTotal = cartService.getTotal();
+        Label totalLabel = new Label("Итого: " + String.format("%,.0f ₽", initialTotal));
+        totalLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #10b981;");
+        double[] totalRef = { initialTotal }; // изменяемый итог для lambda
+
+        // Группируем по категории
         Map<String, List<CartItem>> grouped = items.stream()
             .collect(Collectors.groupingBy(
                 i -> i.getCategory() != null ? i.getCategory() : "Прочее",
@@ -121,7 +127,7 @@ public class CartView {
                 "-fx-min-width: 34; -fx-min-height: 34; -fx-background-radius: 8; -fx-cursor: hand;";
             final String PLUS_DISABLED = "-fx-background-color: #2a2a3e; -fx-text-fill: #4a4a60;" +
                 "-fx-font-size: 16px; -fx-font-weight: bold;" +
-                "-fx-min-width: 34; -fx-min-height: 34; -fx-background-radius: 8; -fx-opacity: 0.6;";
+                "-fx-min-width: 34; -fx-min-height: 34; -fx-opacity: 0.6;";
             plusBtn.setStyle(PLUS_ACTIVE);
             plusBtn.setTooltip(new Tooltip("Увеличить количество"));
 
@@ -130,6 +136,16 @@ public class CartView {
                 plusBtn.setDisable(true);
                 plusBtn.setStyle(PLUS_DISABLED);
             }
+
+            // Subtotal для этой позиции — объявляем до обработчиков
+            VBox subtotalBox = new VBox(4);
+            subtotalBox.setAlignment(Pos.CENTER_RIGHT);
+            subtotalBox.setPrefWidth(120);
+            Label subtotalLabel = new Label("Итого");
+            subtotalLabel.getStyleClass().add("label-muted");
+            Label subtotalValue = new Label(item.getFormattedSubtotal());
+            subtotalValue.getStyleClass().add("price-label-small");
+            subtotalBox.getChildren().addAll(subtotalLabel, subtotalValue);
 
             javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5));
             pause.setOnFinished(e -> { cartService.removeFromCart(item.getId()); mainLayout.showCart(); });
@@ -158,6 +174,11 @@ public class CartView {
                     qtyValue.setText(String.valueOf(newQty));
                     plusBtn.setDisable(newQty >= stock);
                     plusBtn.setStyle(newQty >= stock ? PLUS_DISABLED : PLUS_ACTIVE);
+                    // Обновляем стоимость позиции
+                    subtotalValue.setText(String.format("%,.0f ₽", item.getProductPrice() * newQty));
+                    // Обновляем общий итог
+                    totalRef[0] -= item.getProductPrice();
+                    totalLabel.setText("Итого: " + String.format("%,.0f ₽", totalRef[0]));
                 }
             });
             plusBtn.setOnAction(e -> {
@@ -169,20 +190,16 @@ public class CartView {
                     boolean atMax = newQty >= stock;
                     plusBtn.setDisable(atMax);
                     plusBtn.setStyle(atMax ? PLUS_DISABLED : PLUS_ACTIVE);
+                    // Обновляем стоимость позиции
+                    subtotalValue.setText(String.format("%,.0f ₽", item.getProductPrice() * newQty));
+                    // Обновляем общий итог
+                    totalRef[0] += item.getProductPrice();
+                    totalLabel.setText("Итого: " + String.format("%,.0f ₽", totalRef[0]));
                 }
             });
 
             qtyControls.getChildren().addAll(minusBtn, qtyValue, plusBtn);
             qtyBox.getChildren().addAll(qtyLabel, qtyControls);
-
-            VBox subtotalBox = new VBox(4);
-            subtotalBox.setAlignment(Pos.CENTER_RIGHT);
-            subtotalBox.setPrefWidth(120);
-            Label subtotalLabel = new Label("Итого");
-            subtotalLabel.getStyleClass().add("label-muted");
-            Label subtotalValue = new Label(item.getFormattedSubtotal());
-            subtotalValue.getStyleClass().add("price-label-small");
-            subtotalBox.getChildren().addAll(subtotalLabel, subtotalValue);
 
             Button removeBtn = new Button("×");
             removeBtn.getStyleClass().addAll("btn-danger", "btn-small");
@@ -204,10 +221,6 @@ public class CartView {
         footer.setAlignment(Pos.CENTER_RIGHT);
         footer.setPadding(new Insets(16));
         footer.setStyle("-fx-background-color: #252538; -fx-background-radius: 12; -fx-border-color: #3a3a50; -fx-border-radius: 12;");
-
-        double total = cartService.getTotal();
-        Label totalLabel = new Label("Итого: " + String.format("%,.0f ₽", total));
-        totalLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #10b981;");
 
         Button checkoutBtn = new Button("Оформить заказ →");
         checkoutBtn.getStyleClass().add("btn-primary");

@@ -28,8 +28,8 @@ test_*.log
 Thumbs.db
 .DS_Store
 
-# Unnecessary files in project root
-ListCat.java
+# Unnecessary files
+# (cleaned up: ListCat.java, render_mermaid.py removed from project)
 
 # Build artifacts in dist
 dist/src/
