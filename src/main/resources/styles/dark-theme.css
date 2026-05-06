@@ -289,7 +289,7 @@
     -fx-cursor: hand;
     -fx-alignment: CENTER_LEFT;
     -fx-font-size: 14px;
-    -fx-max-width: 1.7976931348623157E308;
+    -fx-max-width: infinity;
 }
 
 .sidebar-item:hover {

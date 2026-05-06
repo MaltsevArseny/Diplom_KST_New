@@ -28,6 +28,9 @@ test_*.log
 Thumbs.db
 .DS_Store
 
+# Claude Code internal files
+.claude/
+
 # Unnecessary files
 # (cleaned up: ListCat.java, render_mermaid.py removed from project)
 

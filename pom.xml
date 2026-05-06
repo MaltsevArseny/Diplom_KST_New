@@ -143,6 +143,7 @@
                         --add-opens techhaven/com.techhaven.service=ALL-UNNAMED
                         --add-opens techhaven/com.techhaven.config=ALL-UNNAMED
                         --add-opens techhaven/com.techhaven.repository=ALL-UNNAMED
+                        -Djava.util.logging.config.file=${project.basedir}/src/main/resources/logging.properties
                     </argLine>
                 </configuration>
             </plugin>

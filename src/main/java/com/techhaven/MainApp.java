@@ -1,5 +1,6 @@
 package com.techhaven;
 
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import com.techhaven.config.DatabaseManager;
@@ -141,6 +142,9 @@ public class MainApp extends Application {
     }
 
     public static void main(String[] args) {
+        try (var is = MainApp.class.getResourceAsStream("/logging.properties")) {
+            if (is != null) LogManager.getLogManager().readConfiguration(is);
+        } catch (Exception ignored) {}
         launch(args);
     }
 }

@@ -66,6 +66,10 @@ public class DatabaseManager {
         try {
             // Этап 1: Создание таблиц из schema.sql
             String schema = loadResource("/schema.sql");
+            // Strip UTF-8 BOM if present
+            if (schema.charAt(0) == '﻿') schema = schema.substring(1);
+            // Remove -- comments before splitting so comment-only fragments are skipped cleanly
+            schema = schema.replaceAll("--[^\n]*", "");
             try (Connection conn = getConnection();
                  Statement stmt = conn.createStatement()) {
                 for (String sql : schema.split(";")) {
