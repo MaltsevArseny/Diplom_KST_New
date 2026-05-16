@@ -140,7 +140,7 @@ public final class DialogHelper {
         Button okBtn = new Button("OK");
         okBtn.setStyle(
             "-fx-background-color:" + accent + ";" +
-            "-fx-text-fill:white;-fx-font-size:13px;-fx-font-weight:bold;" +
+            "-fx-text-fill:-th-cream;-fx-font-size:13px;-fx-font-weight:bold;" +
             "-fx-background-radius:8;-fx-padding:8 32;-fx-cursor:hand;"
         );
         okBtn.setOnAction(e -> stage.close());

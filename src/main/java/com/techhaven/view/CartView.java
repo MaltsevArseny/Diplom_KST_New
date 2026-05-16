@@ -122,19 +122,12 @@ public class CartView {
                 "-fx-min-width: 36; -fx-alignment: center;");
 
             Button plusBtn = new Button("+");
-            final String PLUS_ACTIVE = "-fx-background-color: -th-success; -fx-text-fill: white;" +
-                "-fx-font-size: 16px; -fx-font-weight: bold;" +
-                "-fx-min-width: 34; -fx-min-height: 34; -fx-background-radius: 8; -fx-cursor: hand;";
-            final String PLUS_DISABLED = "-fx-background-color: -th-bg-card; -fx-text-fill: #4a4a60;" +
-                "-fx-font-size: 16px; -fx-font-weight: bold;" +
-                "-fx-min-width: 34; -fx-min-height: 34; -fx-opacity: 0.6;";
-            plusBtn.setStyle(PLUS_ACTIVE);
+            plusBtn.getStyleClass().add("qty-plus-button");
             plusBtn.setTooltip(new Tooltip("Увеличить количество"));
 
             int stock = item.getStockQuantity();
             if (item.getQuantity() >= stock) {
                 plusBtn.setDisable(true);
-                plusBtn.setStyle(PLUS_DISABLED);
             }
 
             // Subtotal для этой позиции — объявляем до обработчиков
@@ -155,8 +148,7 @@ public class CartView {
                 Label undoMsg = new Label("Товар удален из корзины");
                 undoMsg.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-style: italic;");
                 Button undoBtn = new Button("Отмена (5с) ↩");
-                undoBtn.getStyleClass().addAll("button", "btn-small");
-                undoBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");
+                undoBtn.getStyleClass().addAll("button", "btn-small", "undo-button");
                 undoBtn.setTooltip(new Tooltip("Отменить удаление"));
                 undoBtn.setOnAction(ue -> { pause.stop(); mainLayout.showCart(); });
                 Region undoSpacer = new Region();
@@ -173,7 +165,6 @@ public class CartView {
                     item.setQuantity(newQty);
                     qtyValue.setText(String.valueOf(newQty));
                     plusBtn.setDisable(newQty >= stock);
-                    plusBtn.setStyle(newQty >= stock ? PLUS_DISABLED : PLUS_ACTIVE);
                     // Обновляем стоимость позиции
                     subtotalValue.setText(String.format("%,.0f ₽", item.getProductPrice() * newQty));
                     // Обновляем общий итог
@@ -187,9 +178,7 @@ public class CartView {
                     cartService.updateQuantity(item.getId(), newQty);
                     item.setQuantity(newQty);
                     qtyValue.setText(String.valueOf(newQty));
-                    boolean atMax = newQty >= stock;
-                    plusBtn.setDisable(atMax);
-                    plusBtn.setStyle(atMax ? PLUS_DISABLED : PLUS_ACTIVE);
+                    plusBtn.setDisable(newQty >= stock);
                     // Обновляем стоимость позиции
                     subtotalValue.setText(String.format("%,.0f ₽", item.getProductPrice() * newQty));
                     // Обновляем общий итог
@@ -225,7 +214,7 @@ public class CartView {
         Button checkoutBtn = new Button("Оформить заказ →");
         checkoutBtn.getStyleClass().add("btn-primary");
         checkoutBtn.setPrefHeight(44);
-        checkoutBtn.setStyle("-fx-font-size: 16px; -fx-background-color: -th-accent; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;");
+        checkoutBtn.setStyle("-fx-font-size: 16px; -fx-background-color: -th-accent; -fx-text-fill: -th-cream; -fx-background-radius: 8; -fx-font-weight: bold;");
         checkoutBtn.setTooltip(new Tooltip("Перейти к оформлению заказа"));
         checkoutBtn.setOnAction(e -> mainLayout.showCheckout());
 

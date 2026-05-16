@@ -13,7 +13,7 @@ DigitalHub — автономное desktop-приложение для прод
 
 | Параметр | Значение |
 |---|---|
-| Версия | 3.2 |
+| Версия | 3.3 |
 | Платформа | Windows 10/11, Linux, macOS (Java cross-platform) |
 | Java | 21 LTS (OpenJDK / Temurin) |
 | UI-фреймворк | JavaFX 21.0.5 |
@@ -50,8 +50,9 @@ Diplom_KST_New/
 │   │   ├── AuthService.java      # Аутентификация, блокировка аккаунта
 │   │   ├── CartService.java
 │   │   ├── FavoriteService.java
-│   │   ├── OrderService.java
-│   │   ├── ProductService.java
+│   │   ├── OrderService.java     # Транзакционный placeOrder, role-checks на updateStatus/Delivery
+│   │   ├── ProductService.java   # CRUD с role-checks и validate()
+│   │   ├── UserService.java      # Admin-операции (lock/unlock/list) с requireAdmin()
 │   │   └── ProductCache.java     # In-memory кэш категорий (Singleton, thread-safe)
 │   └── view/                     # JavaFX экраны
 │       ├── MainLayout.java       # Навбар + контент-область (пользователь)
@@ -99,6 +100,26 @@ Diplom_KST_New/
 | JavaFX FXML | `org.openjfx:javafx-fxml` | 21.0.5 | FXML-поддержка |
 | SQLite JDBC | `org.xerial:sqlite-jdbc` | 3.42.0.0 | Драйвер SQLite |
 | Maven Shade | `org.apache.maven.plugins:maven-shade-plugin` | — | Сборка FAT JAR |
+
+---
+
+## 3.bis. Резолв путей файлов (AppPaths)
+
+Приложение **не зависит от текущей рабочей директории** запуска. Все runtime-ресурсы резолвятся через `com.techhaven.config.AppPaths`:
+
+| Ресурс | По умолчанию | Override |
+|---|---|---|
+| **Data-директория** (БД, картинки) | Папка рядом с JAR'ом (определяется через `CodeSource.getLocation()`) | `-Dapp.data.dir=<dir>` |
+| **БД SQLite** | `dataDir/digitalhub.db` | `-Ddb.path=<file>` |
+| **Картинки товаров** | `dataDir/product_images/` | — (резолвится из dataDir) |
+| **UserManual.md / AdminManual.md** | Поиск: dataDir → parent → CWD → classpath `/help/` | — |
+
+**Эффект:** запуск `java -jar /full/path/to/DigitalHub.jar` создаст БД рядом с JAR'ом, а не там, откуда запущена команда. Это позволяет:
+- Перенести `dist/` куда угодно — приложение продолжит работать
+- Запустить из IDE без поломок (fallback на `user.dir`)
+- Изолировать тестовую БД (`mvn test` → `target/test.db` через surefire systemPropertyVariables)
+
+См. `src/main/java/com/techhaven/config/AppPaths.java` и 10 unit-тестов в `src/test/java/com/techhaven/config/AppPathsTest.java`.
 
 ---
 
@@ -156,6 +177,20 @@ java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar
 ```
 
 > **Примечание:** JavaFX требует наличия нативных библиотек для текущей ОС. FAT JAR собирается с зависимостями, но для работы на Linux/macOS необходимо установить графическую среду (GTK/X11 на Linux или macOS 12+).
+
+### 4.7 Кросс-платформенная сборка JavaFX
+
+В `pom.xml` определены **автоматические Maven-профили** по OS family:
+
+| Profile | Activation | `javafx.platform` |
+|---|---|---|
+| `windows` | `os.family = windows` | `win` |
+| `macos` | `os.family = mac` | `mac` |
+| `linux` | `os.family = unix, os.name = linux` | `linux` |
+
+Maven сам подтягивает нужный classifier-jar (`javafx-graphics-21.0.5-win.jar`, `-mac.jar`, `-linux.jar`) во время сборки. Принудительное переопределение: `mvn package -Pmacos` или `-Djavafx.platform=linux`.
+
+**Почему это важно:** artifact `javafx-graphics-21.0.5.jar` (без classifier) — пустой placeholder. Реальные классы и `module-info.class` лежат в classifier-jar. Без активного профиля Maven подтягивал бы только placeholder → runtime `Module javafx.graphics not found`.
 
 ### 4.6 Как обновить приложение
 
@@ -235,6 +270,11 @@ java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar
 | SQL-инъекции | `PreparedStatement` во всех запросах |
 | Блокировка аккаунта | 5 неудачных попыток → блок на 5 минут |
 | Логирование | `java.util.logging` (стандартный JDK Logger) |
+| Транзакции оформления заказа | Единое соединение с `setAutoCommit(false)`; при любом сбое — `rollback` (заказ/позиции/сток/история/корзина согласованы) |
+| Защита склада от race | `UPDATE Products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?` — атомарное условное списание |
+| Целостность данных | CHECK-constraints на `price ≥ 0`, `stock_quantity ≥ 0`, `quantity > 0`, `total_amount ≥ 0`; UNIQUE-индексы `Cart(user_id, product_id)`, `Favorites(user_id, product_id)` |
+| Проверки прав admin | Service-уровень: `SessionManager.requireAdmin()` в `ProductService.create/update/delete`, `OrderService.updateStatus/updatePlannedDelivery`, `UserService.*` (defense-in-depth поверх UI) |
+| Валидация товаров | `ProductService.validate()` — непустое имя, неотрицательные цена/остаток, существование категории в справочнике, отсутствие дубля имени |
 
 ---
 
@@ -278,34 +318,54 @@ java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar
 
 Default при первом запуске — `DARK` (поведение совместимо с версиями до 3.2).
 
-### CSS-переменные
+### Палитра (SSoT)
 
-Темы определяют единый набор переменных в `.root { ... }`. Переменные доступны как из CSS-селекторов, так и из inline-`setStyle("-fx-...: -th-bg-primary;")`:
+**ВСЕ цвета** приложения определены через CSS-переменные `-th-*` **в одном месте на каждую тему** — в секции `.root { ... }` соответствующего файла. Прочие селекторы и Java-`setStyle()` используют только эти переменные. Hardcoded HEX в коде запрещён.
+
+📘 **Полная таблица** переменных, их значений и мест использования: [docs/THEME_PALETTE.md](docs/THEME_PALETTE.md)
+
+Ключевые переменные:
 
 ```css
--th-bg-primary    /* основной фон */
--th-bg-secondary  /* навбар, sidebar */
+-th-bg-primary    /* основной фон страницы */
+-th-bg-secondary  /* навбар, sidebar, header'ы таблиц */
 -th-bg-card       /* карточки, поля ввода */
 -th-bg-hover      /* hover-состояния */
 -th-accent        /* акцентный фиолетовый */
--th-accent-light  /* светлый акцент (логотип, badge) */
+-th-accent-light  /* светлый акцент (логотип) */
 -th-text-primary  /* основной текст */
 -th-text-secondary /* приглушённый текст */
 -th-text-muted    /* подсказки, плейсхолдеры */
 -th-border        /* рамки полей */
 -th-success / -th-warning / -th-danger
+-th-cream         /* замена белого: текст на акцентных фонах */
 ```
+
+### Светлая тема — песочная палитра (sand)
+
+Светлая тема использует **тёплые песочные оттенки** вместо нейтрального бело-серого:
+
+| Переменная | Значение | Назначение |
+|---|---|---|
+| `-th-bg-primary` | `#f5ede0` | мягкий песок (фон) |
+| `-th-bg-secondary` | `#ede0c8` | глубокий песок (навбар) |
+| `-th-bg-card` | `#f0e6d2` | средний песок (карточки) |
+| `-th-text-primary` | `#3d2f1f` | глубокий тёплый коричневый |
+| `-th-cream` | `#faf3e0` | кремовый для текста на акцентах |
+
+**БЕЛЫЙ цвет (#ffffff) не используется** ни в фонах, ни в шрифтах. Текст на акцентных кнопках — `-th-cream`.
 
 ### Добавить новую тему
 
-1. Создать `src/main/resources/styles/<name>-theme.css` (копия dark с другими значениями переменных в `.root`).
-2. Добавить элемент `<NAME>("/styles/<name>-theme.css")` в `ThemeManager.Theme`.
-3. При необходимости расширить `Theme.opposite()` логику циклического обхода.
-4. Обновить тест `cssResourcesExist()` в `ThemeManagerTest`.
+См. [docs/THEME_PALETTE.md](docs/THEME_PALETTE.md) — раздел «Как добавить новую тему».
 
-### Ограничения
+### Семантические константы (НЕ темизуются)
 
-В коде сохраняется ~40 inline-`setStyle("...#RRGGBB...")` — это семантические цвета (статусы заказов в `AdminOrdersView.statusColor()`, цвета аватаров, акценты-уведомления). Они константны между темами по дизайн-замыслу: статус «Доставлен» зелёный в обеих темах.
+Сохранены ~25 hardcoded HEX в коде — это **семантические** цвета (статусы заказов `AdminOrdersView.statusColor()`, цвета аватаров, акценты уведомлений `DialogHelper.showInfo/Error/Warning`). Они одинаковы в обеих темах по дизайн-замыслу: статус «Доставлен» зелёный в любой теме.
+
+### PDF / печатные отчёты
+
+`AdminReportsView` использует браузерный `window.print()` — HTML-отчёт имеет **собственную палитру** (синий брандинг `#185ABD` на белом фоне), независимую от темы приложения. Это сознательное решение: печатный документ всегда выглядит как печатный, не как скриншот экрана.
 
 ---
 
@@ -324,8 +384,8 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 |---|---|
 | Фреймворк | JUnit 5 (junit-jupiter 5.10.2) |
 | Покрытие | JaCoCo 0.8.13 (`mvn verify` → `target/site/jacoco/index.html`) |
-| Тестовых классов | 28 |
-| Тестов всего | 261 |
+| Тестовых классов | 31 |
+| Тестов всего | 299 |
 | Результат | BUILD SUCCESS |
 
 ### Покрытие по пакетам (JaCoCo)
@@ -364,10 +424,10 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 | `OrderRepository` | 9 | findAll, findById, findByUserId, findOrderItems, statusHistory |
 | `CartRepository` | 11 | addToCart, getCartItems, removeFromCart, updateQuantity, clearCart |
 | `FavoriteRepository` | 8 | addFavorite, getFavorites, removeFavorite, isFavorite |
-| `ProductService` | 24 | getAllProducts, search, pagination, categories |
+| `ProductService` | 31 | getAllProducts, search, pagination, categories, validate (7 кейсов: пустое имя, отриц. цена, отриц. сток, пустая/несуществующая категория, дубль имени, same-name on edit) |
 | `ProductCache` | 12 | cache hit/miss, invalidate, счётчики, конкурентный доступ, неизменяемость |
 | `AuthService` | 11 | Валидация пароля, hash/verify, null/empty |
-| `OrderService` | 30 | placeOrder валидация, success path, чтение заказов, updateStatus |
+| `OrderService` | 33 | placeOrder валидация, success path, чтение заказов, updateStatus, защита от ухода стока в минус (атомарный decrementStock + транзакция), USER не может менять статус кроме отмены своего заказа |
 | `CartService` | 6 | getCartItems, addToCart, removeFromCart, getTotal, isInCart |
 | `FavoriteService` | 4 | getFavorites, getFavoriteCount, isFavorite, addAndRemove |
 | `UndoService` | 8 | Singleton, isPendingDeletion, forceExecute, undo |

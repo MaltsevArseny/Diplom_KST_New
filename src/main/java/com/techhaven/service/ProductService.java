@@ -99,20 +99,65 @@ public class ProductService {
     // ── Запись (CRUD) ────────────────────────────────────────────────────────
 
     /**
-     * Создать новый товар (admin).
+     * Валидирует поля товара перед сохранением.
+     *
+     * <p>Проверяет: непустое имя, цена ≥ 0, остаток ≥ 0, заполненная категория,
+     * существование категории в справочнике, отсутствие дубля имени
+     * (для другого товара). При смене существующего товара передавайте его id
+     * в {@code excludeId}, чтобы исключить совпадение с самим собой;
+     * для нового товара — передайте 0 или отрицательное число.</p>
+     *
+     * @return null если всё корректно, иначе строка ошибки для UI
+     */
+    public String validate(Product product, int excludeId) {
+        if (product == null) return "Не передан товар";
+        String name = product.getName();
+        if (name == null || name.trim().isEmpty()) return "Название товара обязательно";
+        if (product.getPrice() < 0) return "Цена не может быть отрицательной";
+        if (product.getStockQuantity() < 0) return "Остаток на складе не может быть отрицательным";
+        String category = product.getCategory();
+        if (category == null || category.trim().isEmpty()) return "Категория обязательна";
+        List<String> validCats = productRepo.findAllCategories();
+        if (!validCats.contains(category)) {
+            return "Категория «" + category + "» не существует в справочнике";
+        }
+        // Дубль имени: ищем по списку всех товаров, исключая редактируемый
+        for (Product p : productRepo.findAll()) {
+            if (p.getId() == excludeId) continue;
+            if (name.trim().equalsIgnoreCase(p.getName() != null ? p.getName().trim() : null)) {
+                return "Товар с названием «" + name.trim() + "» уже существует";
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Создать новый товар (admin). Перед записью валидирует поля.
      * Инвалидирует кэш категорий на случай добавления товара в новую категорию.
+     *
+     * @throws SecurityException если вызывающий не имеет роли ADMIN
+     * @throws IllegalArgumentException если валидация не пройдена
      */
     public Product createProduct(Product product) {
+        com.techhaven.config.SessionManager.getInstance().requireAdmin();
+        String err = validate(product, 0);
+        if (err != null) throw new IllegalArgumentException(err);
         Product created = productRepo.create(product);
         ProductCache.getInstance().invalidate();
         return created;
     }
 
     /**
-     * Обновить существующий товар (admin).
+     * Обновить существующий товар (admin). Перед записью валидирует поля.
      * Инвалидирует кэш категорий на случай смены категории товара.
+     *
+     * @throws SecurityException если вызывающий не имеет роли ADMIN
+     * @throws IllegalArgumentException если валидация не пройдена
      */
     public boolean updateProduct(Product product) {
+        com.techhaven.config.SessionManager.getInstance().requireAdmin();
+        String err = validate(product, product.getId());
+        if (err != null) throw new IllegalArgumentException(err);
         boolean result = productRepo.update(product);
         if (result) {
             ProductCache.getInstance().invalidate();
@@ -123,8 +168,11 @@ public class ProductService {
     /**
      * Удалить товар по ID (admin).
      * Инвалидирует кэш категорий.
+     *
+     * @throws SecurityException если вызывающий не имеет роли ADMIN
      */
     public void deleteProduct(int id) {
+        com.techhaven.config.SessionManager.getInstance().requireAdmin();
         productRepo.delete(id);
         ProductCache.getInstance().invalidate();
     }

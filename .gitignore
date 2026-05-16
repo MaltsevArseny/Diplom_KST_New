@@ -7,6 +7,7 @@ jpackage-input/*.jar
 # SQLite database files (runtime data, not for version control)
 digitalhub.db
 dist/digitalhub.db
+dist/digitalhub.db.backup-*
 
 # Compiled class files
 *.class

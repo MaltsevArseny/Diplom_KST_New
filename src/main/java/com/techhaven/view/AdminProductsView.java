@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.logging.Level;
@@ -281,8 +280,7 @@ public class AdminProductsView {
                         undoMsg.setStyle("-fx-text-fill: -th-danger; -fx-font-weight: bold;");
                         
                         Button undoBtn = new Button("↩");
-                        undoBtn.getStyleClass().addAll("button", "btn-small");
-                        undoBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");
+                        undoBtn.getStyleClass().addAll("button", "btn-small", "undo-button");
                         undoBtn.setOnAction(ue -> {
                             pause.stop();
                             loadProducts(); // Просто обновляем таблицу
@@ -443,6 +441,12 @@ public class AdminProductsView {
                 stage.close();
             } catch (NumberFormatException ex) {
                 DialogHelper.showError("Ошибка ввода", "Некорректные числовые значения — проверьте цену и количество.");
+            } catch (IllegalArgumentException ex) {
+                // Валидация ProductService.validate() — пустое имя, отрицательная цена,
+                // несуществующая категория, дубликат имени и т.п.
+                DialogHelper.showError("Ошибка валидации", ex.getMessage());
+            } catch (SecurityException ex) {
+                DialogHelper.showError("Доступ запрещён", ex.getMessage());
             }
         });
 
@@ -520,14 +524,14 @@ public class AdminProductsView {
     }
 
     /**
-     * Копирует выбранное изображение в папку product_images и возвращает относительный путь.
+     * Копирует выбранное изображение в папку product_images (резолвится через
+     * {@link com.techhaven.config.AppPaths#productImagesDir()}) и возвращает
+     * относительный путь "product_images/<filename>" для сохранения в БД.
+     * Путь относительный, чтобы БД оставалась переносимой.
      */
     private String copyImageToProductsDir(File sourceFile) {
         try {
-            Path imagesDir = Paths.get("product_images");
-            if (!Files.exists(imagesDir)) {
-                Files.createDirectories(imagesDir);
-            }
+            Path imagesDir = com.techhaven.config.AppPaths.productImagesDir();
             String fileName = System.currentTimeMillis() + "_" + sourceFile.getName();
             Path target = imagesDir.resolve(fileName);
             Files.copy(sourceFile.toPath(), target, StandardCopyOption.REPLACE_EXISTING);
@@ -540,21 +544,31 @@ public class AdminProductsView {
     }
 
     /**
-     * Загружает изображение по пути (относительному или абсолютному).
+     * Загружает изображение по пути. Поддерживает:
+     * 1. Classpath-ресурс (path начинается с "/")
+     * 2. Абсолютный путь к файлу на диске
+     * 3. Относительный путь — резолвится относительно AppPaths.dataDir()
+     *    (например, "product_images/123_image.png")
+     * 4. Fallback — classpath ресурс по тому же пути
      */
     private Image loadProductImage(String path) {
         try {
-            // Попробуем как ресурс из classpath
+            // 1. Classpath (path начинается с "/")
             if (path.startsWith("/")) {
                 var stream = getClass().getResourceAsStream(path);
                 if (stream != null) return new Image(stream);
             }
-            // Как файл на диске
-            File file = new File(path);
-            if (file.exists()) {
-                return new Image(file.toURI().toString());
+            // 2. Абсолютный путь
+            File abs = new File(path);
+            if (abs.isAbsolute() && abs.exists()) {
+                return new Image(abs.toURI().toString());
             }
-            // Попробуем из resources
+            // 3. Относительный — резолвим в data-директории приложения
+            Path resolved = com.techhaven.config.AppPaths.dataDir().resolve(path);
+            if (Files.exists(resolved)) {
+                return new Image(resolved.toUri().toString());
+            }
+            // 4. Fallback на classpath
             var stream = getClass().getResourceAsStream("/" + path);
             if (stream != null) return new Image(stream);
         } catch (Exception e) {

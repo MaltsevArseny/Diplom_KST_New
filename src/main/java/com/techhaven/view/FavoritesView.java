@@ -150,8 +150,7 @@ public class FavoritesView {
                     Label undoMsg = new Label("Удалено");
                     undoMsg.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-style: italic;");
                     Button undoBtn = new Button("Отмена (5с) ↩");
-                    undoBtn.getStyleClass().addAll("button", "btn-small");
-                    undoBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");
+                    undoBtn.getStyleClass().addAll("button", "btn-small", "undo-button");
                     undoBtn.setOnAction(ue -> { pause.stop(); mainLayout.showFavorites(); });
                     card.getChildren().addAll(undoMsg, undoBtn);
                     pause.play();

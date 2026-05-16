@@ -255,7 +255,7 @@ public class OrdersView {
 
             if (order.getComment() != null && !order.getComment().trim().isEmpty()) {
                 Label commentLbl = new Label("💬 " + order.getComment());
-                commentLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-style: italic; -fx-font-size: " + sf + "px;");
+                commentLbl.setStyle("-fx-text-fill: -th-text-muted; -fx-font-style: italic; -fx-font-size: " + sf + "px;");
                 commentLbl.setWrapText(true);
                 deliveryInfo.getChildren().add(commentLbl);
             }
@@ -286,7 +286,7 @@ public class OrdersView {
                 row.setAlignment(Pos.CENTER_LEFT);
                 
                 Button itemLink = new Button(item.getProductName());
-                itemLink.setStyle("-fx-background-color: transparent; -fx-text-fill: #60a5fa; -fx-cursor: hand; -fx-padding: 0; -fx-underline: true;");
+                itemLink.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-accent; -fx-cursor: hand; -fx-padding: 0; -fx-underline: true;");
                 itemLink.setOnAction(e -> mainLayout.showProductDetail(item.getProductId()));
                 
                 Label qtyLbl = new Label(" × " + item.getQuantity());
@@ -422,7 +422,7 @@ public class OrdersView {
     /** Инлайн-стиль бейджа статуса заказа (единый с AdminOrdersView) */
     private String statusBadgeStyle(String status) {
         String color = statusAccentColor(status);
-        return "-fx-background-color: " + color + "; -fx-text-fill: white;" +
+        return "-fx-background-color: " + color + "; -fx-text-fill: -th-cream;" +
                "-fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 2 8; -fx-font-size: 13px; ";
     }
 

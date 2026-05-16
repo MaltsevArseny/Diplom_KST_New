@@ -131,13 +131,19 @@ public class CartRepository implements ICartRepository {
 
     @Override
     public void clearCart(int userId) {
-        String sql = "DELETE FROM Cart WHERE user_id = ?";
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            ps.executeUpdate();
+        try (Connection conn = db.getConnection()) {
+            clearCart(conn, userId);
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Ошибка очистки корзины", e);
+        }
+    }
+
+    /** Очищает корзину пользователя в рамках переданной транзакции. */
+    public void clearCart(Connection conn, int userId) throws SQLException {
+        String sql = "DELETE FROM Cart WHERE user_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.executeUpdate();
         }
     }
 

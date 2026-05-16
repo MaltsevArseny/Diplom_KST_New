@@ -9,6 +9,7 @@ import com.techhaven.MainApp;
 import com.techhaven.model.User;
 import com.techhaven.repository.UserRepository;
 import com.techhaven.security.SecurityManager;
+import com.techhaven.service.UserService;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -33,6 +34,7 @@ import javafx.stage.Stage;
 
 public class AdminUsersView {
     private final UserRepository userRepo = new UserRepository();
+    private final UserService userService = new UserService();
     private final SecurityManager security = SecurityManager.getInstance();
 
     private static final DateTimeFormatter FMT =
@@ -62,7 +64,7 @@ public class AdminUsersView {
         // ── Кнопка «Добавить администратора» ──────────────────────────
         Button addAdminBtn = new Button("🛡 Добавить администратора");
         addAdminBtn.setStyle(
-            "-fx-background-color: -th-accent; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-background-color: -th-accent; -fx-text-fill: -th-cream; -fx-font-weight: bold;" +
             "-fx-font-size: 13px; -fx-padding: 8 16; -fx-background-radius: 8; -fx-cursor: hand;"
         );
         addAdminBtn.setTooltip(new javafx.scene.control.Tooltip("Добавить нового администратора"));
@@ -162,7 +164,7 @@ public class AdminUsersView {
                 boolean isAdmin = u != null && "ADMIN".equalsIgnoreCase(u.getRole());
                 setText(name);
                 setStyle(isAdmin
-                    ? "-fx-font-weight: bold; -fx-text-fill: #c4b5fd;"
+                    ? "-fx-font-weight: bold; -fx-text-fill: -th-accent-light;"
                     : "-fx-text-fill: -th-text-primary;");
             }
         });
@@ -238,7 +240,7 @@ public class AdminUsersView {
                 super.updateItem(val, empty);
                 if (empty || val == null || val.isEmpty()) { setText(""); setStyle(""); return; }
                 setText(val);
-                setStyle("-fx-text-fill: #f87171; -fx-font-size: 13px;");
+                setStyle("-fx-text-fill: -th-danger; -fx-font-size: 13px;");
             }
         });
 
@@ -273,24 +275,24 @@ public class AdminUsersView {
                     "-fx-font-size: 16px; -fx-padding: 4 8;" +
                     "-fx-background-radius: 7; -fx-cursor: hand;";
                 unlockBtn.setStyle(baseStyle +
-                    "-fx-background-color: #059669; -fx-text-fill: white;");
+                    "-fx-background-color: #059669; -fx-text-fill: -th-cream;");
                 lockBtn.setStyle(baseStyle +
-                    "-fx-background-color: #dc2626; -fx-text-fill: white;");
+                    "-fx-background-color: #dc2626; -fx-text-fill: -th-cream;");
                 unlockBtn.setTooltip(new Tooltip("Разблокировать пользователя"));
                 lockBtn.setTooltip(new Tooltip("Заблокировать пользователя"));
 
                 // hover-эффекты
                 unlockBtn.setOnMouseEntered(e -> unlockBtn.setStyle(baseStyle +
-                    "-fx-background-color: -th-success; -fx-text-fill: white;"));
+                    "-fx-background-color: -th-success; -fx-text-fill: -th-cream;"));
                 unlockBtn.setOnMouseExited(e -> {
                     if (!unlockBtn.isDisabled())
-                        unlockBtn.setStyle(baseStyle + "-fx-background-color: #059669; -fx-text-fill: white;");
+                        unlockBtn.setStyle(baseStyle + "-fx-background-color: #059669; -fx-text-fill: -th-cream;");
                 });
                 lockBtn.setOnMouseEntered(e -> lockBtn.setStyle(baseStyle +
-                    "-fx-background-color: -th-danger; -fx-text-fill: white;"));
+                    "-fx-background-color: -th-danger; -fx-text-fill: -th-cream;"));
                 lockBtn.setOnMouseExited(e -> {
                     if (!lockBtn.isDisabled())
-                        lockBtn.setStyle(baseStyle + "-fx-background-color: #dc2626; -fx-text-fill: white;");
+                        lockBtn.setStyle(baseStyle + "-fx-background-color: #dc2626; -fx-text-fill: -th-cream;");
                 });
             }
             @Override protected void updateItem(Void item, boolean empty) {
@@ -313,11 +315,11 @@ public class AdminUsersView {
                 unlockBtn.setDisable(!isLocked || isSelf);
                 lockBtn.setDisable(isLocked || isSelf);
                 unlockBtn.setStyle(isLocked && !isSelf
-                    ? baseStyle + "-fx-background-color: #059669; -fx-text-fill: white;"
+                    ? baseStyle + "-fx-background-color: #059669; -fx-text-fill: -th-cream;"
                     : disabledStyle);
                 lockBtn.setStyle(isLocked || isSelf
                     ? disabledStyle
-                    : baseStyle + "-fx-background-color: #dc2626; -fx-text-fill: white;");
+                    : baseStyle + "-fx-background-color: #dc2626; -fx-text-fill: -th-cream;");
 
                 if (isSelf) {
                     lockBtn.setTooltip(new Tooltip("Нельзя заблокировать собственную учётную запись"));
@@ -327,7 +329,7 @@ public class AdminUsersView {
                     unlockBtn.setTooltip(new Tooltip("Разблокировать пользователя"));
                 }
 
-                unlockBtn.setOnAction(e -> { userRepo.unlockUser(u.getId()); loadUsers(); });
+                unlockBtn.setOnAction(e -> { userService.unlockUser(u.getId()); loadUsers(); });
                 lockBtn.setOnAction(e   -> AdminUsersView.this.showLockDialog(u));
 
                 HBox box = new HBox(6, unlockBtn, lockBtn);
@@ -373,7 +375,7 @@ public class AdminUsersView {
         Stage dlg = DialogHelper.createStage(MainApp.getPrimaryStage(), true);
 
         Label title = new Label("🔒 Блокировка пользователя");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #f87171;");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -th-danger;");
         Label who = new Label("👤 " + user.getUsername() + "   " + maskEmail(user.getEmail()));
         who.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
 
@@ -400,7 +402,7 @@ public class AdminUsersView {
         confirmBtn.getStyleClass().addAll("button", "btn-danger");
         confirmBtn.setMaxWidth(Double.MAX_VALUE);
         confirmBtn.setOnAction(e -> {
-            userRepo.lockUser(user.getId(), reasonField.getText().trim());
+            userService.lockUser(user.getId(), reasonField.getText().trim());
             loadUsers();
             dlg.close();
         });
@@ -592,7 +594,7 @@ public class AdminUsersView {
     }
 
     private void loadUsers() {
-        allUsers = userRepo.findAllIncludingAdmins();
+        allUsers = userService.listAllIncludingAdmins();
         applyFilter();
         updateBadges();
     }

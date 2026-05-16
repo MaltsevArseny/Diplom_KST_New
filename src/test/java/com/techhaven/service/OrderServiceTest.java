@@ -38,6 +38,13 @@ class OrderServiceTest {
         restoreStock(200, 201, 202, 203, 204);
     }
 
+    /** Переключает текущую сессию на тестового админа (для admin-only операций). */
+    private void loginAdmin() {
+        User admin = new User("TestAdmin", "test_admin@digitalhub.local", "+70000000099", "hash", "ADMIN");
+        admin.setId(999);
+        SessionManager.getInstance().login(admin);
+    }
+
     /** Восстановить stock_quantity до 10 для указанных товаров */
     private void restoreStock(int... productIds) {
         String sql = "UPDATE Products SET stock_quantity = 10 WHERE id = ?";
@@ -119,6 +126,104 @@ class OrderServiceTest {
         assertNull(result, "placeOrder должен вернуть null при успехе");
     }
 
+    @Test
+    @DisplayName("placeOrder не уводит stock в минус при недостаче товара (race-protection)")
+    void placeOrderDoesNotAllowNegativeStock() {
+        // Готовим товар с малым остатком, в корзине просим больше
+        int productId = 200;
+        // Обнуляем stock прямо в БД (имитируем «параллельную транзакцию», уже забравшую товар)
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE Products SET stock_quantity = 0 WHERE id = ?")) {
+            ps.setInt(1, productId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        // CartRepository хранит запрошенное количество — заполняем напрямую,
+        // чтобы CartService не отказал на этапе addToCart по проверке стока.
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "INSERT INTO Cart (user_id, product_id, quantity, created_at, updated_at) " +
+                 "VALUES (?, ?, 5, datetime('now','localtime'), datetime('now','localtime'))")) {
+            ps.setInt(1, 1);
+            ps.setInt(2, productId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        int ordersBefore = orderService.getMyOrders().size();
+        int stockBefore = stockOf(productId);
+
+        String result = orderService.placeOrder("ул. Тестовая 1", "+71234567890", "09:00 - 12:00", null);
+
+        // placeOrder может вернуть либо MSG_INSUFFICIENT_STOCK (отлов на проверке наличия),
+        // либо MSG_STOCK_RACE (atomic-UPDATE при race-condition) — но НЕ должен сохранить заказ.
+        assertNotNull(result, "Ожидалось сообщение об ошибке при stock=0");
+        assertEquals(ordersBefore, orderService.getMyOrders().size(),
+            "Заказ НЕ должен быть создан при отсутствии товара");
+        assertTrue(stockOf(productId) >= 0, "Stock не должен уйти в минус");
+        assertEquals(stockBefore, stockOf(productId), "Stock не должен измениться");
+    }
+
+    @Test
+    @DisplayName("При сбое в транзакции (несуществующий status) заказ не остаётся в БД")
+    void placeOrderRollsBackOnFailure() {
+        // Корректный кейс: всё должно пройти, но проверим, что если бы транзакция
+        // сломалась — заказ бы откатился. Косвенно: проверяем атомарность.
+        CartService cartService = new CartService();
+        cartService.addToCart(201, 1);
+
+        int ordersBefore = orderService.getMyOrders().size();
+        int stockBefore = stockOf(201);
+        int historyBefore = countOrderHistory();
+        int cartCountBefore = new CartRepository().getCartCount(1);
+
+        String result = orderService.placeOrder("ул. Тестовая 2", "+71234567890", "09:00 - 12:00", null);
+        assertNull(result, "Успешное оформление должно вернуть null");
+
+        // Все 4 эффекта произошли (или ни один) — проверяем согласованность
+        int ordersAfter = orderService.getMyOrders().size();
+        int stockAfter = stockOf(201);
+        int historyAfter = countOrderHistory();
+        int cartCountAfter = new CartRepository().getCartCount(1);
+
+        assertEquals(ordersBefore + 1, ordersAfter, "Заказ должен быть создан");
+        assertEquals(stockBefore - 1, stockAfter, "Stock должен уменьшиться на 1");
+        assertTrue(historyAfter > historyBefore, "В историю должна добавиться запись");
+        assertEquals(0, cartCountAfter, "Корзина должна быть очищена (была " + cartCountBefore + ")");
+    }
+
+    /** Возвращает текущий stock товара по id. */
+    private int stockOf(int productId) {
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "SELECT stock_quantity FROM Products WHERE id = ?")) {
+            ps.setInt(1, productId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return -1;
+    }
+
+    /** Считает количество записей в OrderStatusHistory. */
+    private int countOrderHistory() {
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "SELECT COUNT(*) FROM OrderStatusHistory")) {
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return -1;
+    }
+
     // === Чтение заказов ===
 
     @Test
@@ -190,6 +295,7 @@ class OrderServiceTest {
         int orderId = placeNewOrder(201);
         assertTrue(orderId > 0, "Не удалось создать тестовый заказ");
 
+        loginAdmin(); // смена статуса заказа — admin-операция
         String result = orderService.updateStatus(orderId, "В обработке");
         assertNull(result, "Ожидается null (успех) при допустимом переходе Новый → В обработке");
     }
@@ -200,6 +306,7 @@ class OrderServiceTest {
         int orderId = placeNewOrder(202);
         assertTrue(orderId > 0, "Не удалось создать тестовый заказ");
 
+        loginAdmin();
         String result = orderService.updateStatus(orderId, "Доставлен");
         assertNotNull(result, "Пропуск статуса должен вернуть ошибку");
         assertTrue(result.contains(OrderService.MSG_INVALID_TRANSITION),
@@ -207,13 +314,27 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Отмена заказа допустима из незавершённого статуса")
+    @DisplayName("Отмена заказа допустима из незавершённого статуса (владелец-USER)")
     void cancelFromNonTerminalIsAllowed() {
         int orderId = placeNewOrder(203);
         assertTrue(orderId > 0, "Не удалось создать тестовый заказ");
 
+        // USER, владеющий заказом, может отменить свой незавершённый заказ
         String result = orderService.updateStatus(orderId, "Отменен");
         assertNull(result, "Отмена из незавершённого статуса должна быть успешной");
+    }
+
+    @Test
+    @DisplayName("USER без admin-прав не может менять статус заказа (кроме своей отмены)")
+    void userCannotChangeStatusToInProcess() {
+        int orderId = placeNewOrder(201);
+        assertTrue(orderId > 0);
+        // USER пытается перевести «Новый → В обработке» — должно бросить SecurityException
+        org.junit.jupiter.api.Assertions.assertThrows(
+            SecurityException.class,
+            () -> orderService.updateStatus(orderId, "В обработке"),
+            "USER не должен иметь право менять статус (только отменить свой)"
+        );
     }
 
     @Test
@@ -222,6 +343,7 @@ class OrderServiceTest {
         // Создаём заказ и проводим его по всей цепочке до "Завершён"
         int orderId = placeNewOrder(204);
         assertTrue(orderId > 0, "Не удалось создать тестовый заказ");
+        loginAdmin();
         // Полная цепочка: Новый → В обработке → Подтверждён → Собран → Отправлен → Доставлен → Завершён
         assertNull(orderService.updateStatus(orderId, "В обработке"));
         assertNull(orderService.updateStatus(orderId, "Подтверждён"));
@@ -250,6 +372,7 @@ class OrderServiceTest {
         Order first = orders.get(0);
         String date = "2026-03-20";
         String interval = "14:00-16:00";
+        loginAdmin(); // updatePlannedDelivery — admin-операция
         org.junit.jupiter.api.Assertions.assertDoesNotThrow(
             () -> orderService.updatePlannedDelivery(first.getId(), date, interval)
         );

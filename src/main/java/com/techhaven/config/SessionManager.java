@@ -46,4 +46,19 @@ public class SessionManager {
     public int getCurrentUserId() {
         return currentUser != null ? currentUser.getId() : -1;
     }
+
+    /**
+     * Бросает {@link SecurityException}, если текущий пользователь не авторизован
+     * или не имеет роли ADMIN. Используется в начале admin-only сервисных методов
+     * как defense-in-depth: даже если UI-слой ошибочно показал кнопку обычному
+     * пользователю, операция не выполнится.
+     */
+    public void requireAdmin() {
+        if (currentUser == null) {
+            throw new SecurityException("Требуется авторизация");
+        }
+        if (!currentUser.isAdmin()) {
+            throw new SecurityException("Операция доступна только администратору");
+        }
+    }
 }

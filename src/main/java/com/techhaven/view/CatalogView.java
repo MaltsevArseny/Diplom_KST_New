@@ -248,20 +248,20 @@ public class CatalogView {
             moreBtn.setMaxWidth(Double.MAX_VALUE);
             moreBtn.setStyle(
                 "-fx-background-color: " + colors[0] + ";" +
-                "-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;" +
+                "-fx-text-fill: -th-cream; -fx-font-size: 13px; -fx-font-weight: bold;" +
                 "-fx-padding: 10 24; -fx-background-radius: 10; -fx-cursor: hand;" +
                 "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 6, 0, 0, 2);"
             );
             moreBtn.setOnMouseEntered(e -> moreBtn.setStyle(
                 "-fx-background-color: " + colors[0] + ";" +
-                "-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;" +
+                "-fx-text-fill: -th-cream; -fx-font-size: 13px; -fx-font-weight: bold;" +
                 "-fx-padding: 10 24; -fx-background-radius: 10; -fx-cursor: hand;" +
                 "-fx-opacity: 0.85;" +
                 "-fx-effect: dropshadow(gaussian, " + colors[0] + ", 10, 0.3, 0, 0);"
             ));
             moreBtn.setOnMouseExited(e -> moreBtn.setStyle(
                 "-fx-background-color: " + colors[0] + ";" +
-                "-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;" +
+                "-fx-text-fill: -th-cream; -fx-font-size: 13px; -fx-font-weight: bold;" +
                 "-fx-padding: 10 24; -fx-background-radius: 10; -fx-cursor: hand;" +
                 "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 6, 0, 0, 2);"
             ));
@@ -503,7 +503,7 @@ public class CatalogView {
             (alreadyInCart
                 ? "-fx-background-color: -th-success;"
                 : "-fx-background-color: " + accentColor + ";") +
-            " -fx-text-fill: white;" +
+            " -fx-text-fill: -th-cream;" +
             "-fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 6 12; -fx-background-radius: 8; -fx-cursor: hand;"
         );
         addToCartBtn.setDisable(product.getStockQuantity() <= 0);
@@ -523,7 +523,7 @@ public class CatalogView {
                 } else {
                     addToCartBtn.setText("✓ В корзине");
                     addToCartBtn.setStyle(
-                        "-fx-background-color: -th-success; -fx-text-fill: white;" +
+                        "-fx-background-color: -th-success; -fx-text-fill: -th-cream;" +
                         "-fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 6 12; -fx-background-radius: 8;"
                     );
                     mainLayout.updateCartBadge();
@@ -564,9 +564,12 @@ public class CatalogView {
             new Separator(), priceLabel, stockLabel, buttons);
 
 
-        // Hover-эффект
+        // Hover-эффект — используем токен темы, а НЕ хардкод #353555.
+        // На светлой теме хардкод тёмно-серого «затемнял» карточку настолько,
+        // что коричневый текст на нём становился нечитаемым (жалоба пользователя).
+        // -th-bg-hover в обеих темах даёт корректный контраст с -th-text-primary.
         card.setOnMouseEntered(e -> card.setStyle(
-            "-fx-background-color: #353555;" +
+            "-fx-background-color: -th-bg-hover;" +
             "-fx-border-color: " + accentColor + ";" +
             "-fx-border-width: 2;" +
             "-fx-border-radius: 16;" +

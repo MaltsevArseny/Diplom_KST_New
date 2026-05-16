@@ -31,12 +31,24 @@ public class OrderRepository implements IOrderRepository {
 
     @Override
     public Order create(Order order) {
+        try (Connection conn = db.getConnection()) {
+            return create(conn, order);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Ошибка создания заказа", e);
+        }
+        return null;
+    }
+
+    /**
+     * Создаёт заказ в рамках переданной транзакции (без управления Connection).
+     * @throws SQLException если запрос не удался — вызывающий должен откатить транзакцию
+     */
+    public Order create(Connection conn, Order order) throws SQLException {
         String sql = """
                 INSERT INTO Orders (user_id, order_date, status_id, delivery_address, contact_phone,
                                    delivery_time_interval, comment, total_amount, created_at, updated_at)
                 VALUES (?, datetime('now','localtime'), (SELECT id FROM OrderStatuses WHERE name = ?), ?, ?, ?, ?, ?, datetime('now','localtime'), datetime('now','localtime'))""";
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, order.getUserId());
             ps.setString(2, order.getStatus() != null ? order.getStatus() : "Новый");
             ps.setString(3, com.techhaven.security.SecurityManager.getInstance().encrypt(order.getDeliveryAddress()));
@@ -49,26 +61,29 @@ public class OrderRepository implements IOrderRepository {
             ResultSet keys = ps.getGeneratedKeys();
             if (keys.next()) order.setId(keys.getInt(1));
             return order;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Ошибка создания заказа", e);
         }
-        return null;
     }
 
     @Override
     public void createOrderItem(OrderItem item) {
+        try (Connection conn = db.getConnection()) {
+            createOrderItem(conn, item);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Ошибка добавления позиции заказа", e);
+        }
+    }
+
+    /** Создаёт позицию заказа в рамках переданной транзакции. */
+    public void createOrderItem(Connection conn, OrderItem item) throws SQLException {
         String sql = """
                 INSERT INTO OrderItems (order_id, product_id, quantity, price_at_order, created_at)
                 VALUES (?, ?, ?, ?, datetime('now','localtime'))""";
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, item.getOrderId());
             ps.setInt(2, item.getProductId());
             ps.setInt(3, item.getQuantity());
             ps.setDouble(4, item.getPriceAtOrder());
             ps.executeUpdate();
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Ошибка добавления позиции заказа", e);
         }
     }
 
@@ -171,17 +186,23 @@ public class OrderRepository implements IOrderRepository {
 
     @Override
     public void addStatusHistory(int orderId, String status, int changedBy) {
+        try (Connection conn = db.getConnection()) {
+            addStatusHistory(conn, orderId, status, changedBy);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Ошибка записи истории статуса", e);
+        }
+    }
+
+    /** Добавляет запись в историю статусов в рамках переданной транзакции. */
+    public void addStatusHistory(Connection conn, int orderId, String status, int changedBy) throws SQLException {
         String sql = """
                 INSERT INTO OrderStatusHistory (order_id, status_id, changed_at, changed_by)
                 VALUES (?, (SELECT id FROM OrderStatuses WHERE name = ?), datetime('now','localtime'), ?)""";
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, orderId);
             ps.setString(2, status);
             ps.setInt(3, changedBy);
             ps.executeUpdate();
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Ошибка записи истории статуса", e);
         }
     }
 

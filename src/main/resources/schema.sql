@@ -72,10 +72,10 @@ CREATE TABLE IF NOT EXISTS Products (
     -- Краткое описание товара
     category_id INTEGER NOT NULL REFERENCES Categories(id),
     -- FK → Categories.id
-    price REAL,
-    -- Цена товара в рублях (₽)
-    stock_quantity INTEGER DEFAULT 0,
-    -- Остаток на складе (шт.)
+    price REAL CHECK (price IS NULL OR price >= 0),
+    -- Цена товара в рублях (₽), не может быть отрицательной
+    stock_quantity INTEGER DEFAULT 0 CHECK (stock_quantity >= 0),
+    -- Остаток на складе (шт.), не может уйти в минус
     specifications TEXT,
     -- Технические характеристики (формат: ключ:значение через ;)
     image_path TEXT,
@@ -112,8 +112,8 @@ CREATE TABLE IF NOT EXISTS Orders (
     -- Плановая дата доставки (назначает администратор)
     planned_delivery_interval TEXT,
     -- Плановый интервал доставки (назначает администратор)
-    total_amount REAL,
-    -- Итоговая сумма заказа в рублях (₽)
+    total_amount REAL CHECK (total_amount IS NULL OR total_amount >= 0),
+    -- Итоговая сумма заказа в рублях (₽), не может быть отрицательной
     created_at TEXT DEFAULT (datetime('now')),
     -- Системная дата создания записи
     updated_at TEXT DEFAULT (datetime('now')),
@@ -131,10 +131,10 @@ CREATE TABLE IF NOT EXISTS OrderItems (
     -- FK → Orders.id (к какому заказу)
     product_id INTEGER,
     -- FK → Products.id (какой товар)
-    quantity INTEGER,
-    -- Количество единиц товара
-    price_at_order REAL,
-    -- Цена за единицу на момент заказа (₽)
+    quantity INTEGER CHECK (quantity IS NULL OR quantity > 0),
+    -- Количество единиц товара (только положительное)
+    price_at_order REAL CHECK (price_at_order IS NULL OR price_at_order >= 0),
+    -- Цена за единицу на момент заказа (₽), не отрицательная
     created_at TEXT DEFAULT (datetime('now')),
     -- Дата/время добавления позиции
     FOREIGN KEY(order_id) REFERENCES Orders(id) ON DELETE CASCADE,
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS Cart (
     -- FK → Users.id (чья корзина)
     product_id INTEGER,
     -- FK → Products.id (какой товар)
-    quantity INTEGER DEFAULT 1,
+    quantity INTEGER DEFAULT 1 CHECK (quantity > 0),
     -- Количество единиц (≥ 1)
     created_at TEXT DEFAULT (datetime('now')),
     -- Дата/время добавления в корзину
@@ -194,6 +194,13 @@ CREATE TABLE IF NOT EXISTS OrderStatusHistory (
     FOREIGN KEY(order_id) REFERENCES Orders(id)
 );
 -- ────────────────────────────────────────────────────────────
+-- Идемпотентная очистка возможных дублей перед созданием
+-- UNIQUE-индексов (на случай мигрирующей БД, где индексов ещё
+-- не было). Оставляем самую раннюю запись (минимальный id).
+-- ────────────────────────────────────────────────────────────
+DELETE FROM Cart WHERE id NOT IN (SELECT MIN(id) FROM Cart GROUP BY user_id, product_id);
+DELETE FROM Favorites WHERE id NOT IN (SELECT MIN(id) FROM Favorites GROUP BY user_id, product_id);
+-- ────────────────────────────────────────────────────────────
 -- Индексы для ускорения частых запросов
 -- ────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_users_email ON Users(email);
@@ -208,3 +215,7 @@ CREATE INDEX IF NOT EXISTS idx_orderitems_order ON OrderItems(order_id);
 -- Позиции конкретного заказа
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_name ON Products(name);
 -- Уникальность названия товара
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cart_user_product ON Cart(user_id, product_id);
+-- Один товар у пользователя в корзине = одна запись (защита от логических дублей)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_favorites_user_product ON Favorites(user_id, product_id);
+-- Один товар в избранном у пользователя = одна запись

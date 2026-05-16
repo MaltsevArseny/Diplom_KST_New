@@ -1,4 +1,16 @@
-/* ========== DigitalHub Dark Theme ========== */
+/* ========== DigitalHub Dark Theme ==========
+
+   ★★★ ЕДИНАЯ ТОЧКА ИЗМЕНЕНИЯ ЦВЕТОВ ★★★
+   Все цвета приложения определены через переменные -th-* в секции .root { } ниже.
+   Селекторы под .root используют ТОЛЬКО эти переменные.
+
+   Полная таблица переменных, их назначения, и palette light-темы:
+   → docs/THEME_PALETTE.md
+
+   ВАЖНО: не вводить hex-цвета в Java setStyle() или CSS-селекторы.
+   Использовать -th-* переменные (например, -th-bg-card, -th-text-primary).
+   Замена белого — -th-cream.
+*/
 
 /* === Fonts === */
 @font-face {
@@ -35,6 +47,10 @@
     -th-shadow: rgba(0, 0, 0, 0.3);
     -th-radius: 10;
     -th-radius-lg: 16;
+
+    /* Кремовый — мягкая замена white для текста на акцентных фонах.
+       Слегка тёплый off-white, читаем на purple/red/green/amber. */
+    -th-cream: #f5f5f5;
 }
 
 /* === ScrollPane === */
@@ -152,7 +168,7 @@
 
 .btn-primary {
     -fx-background-color: -th-accent;
-    -fx-text-fill: white;
+    -fx-text-fill: -th-cream;
     -fx-border-color: transparent;
     -fx-font-weight: bold;
 }
@@ -167,7 +183,7 @@
 
 .btn-success {
     -fx-background-color: -th-success;
-    -fx-text-fill: white;
+    -fx-text-fill: -th-cream;
     -fx-border-color: transparent;
     -fx-font-weight: bold;
 }
@@ -178,7 +194,7 @@
 
 .btn-danger {
     -fx-background-color: -th-danger;
-    -fx-text-fill: white;
+    -fx-text-fill: -th-cream;
     -fx-border-color: transparent;
     -fx-font-weight: bold;
 }
@@ -421,7 +437,7 @@
 
 .dialog-pane .button-bar .button {
     -fx-background-color: -th-accent;
-    -fx-text-fill: white;
+    -fx-text-fill: -th-cream;
 }
 
 /* === Custom Panels === */
@@ -587,7 +603,7 @@
 }
 
 .check-box:selected .mark {
-    -fx-background-color: white;
+    -fx-background-color: -th-cream;
 }
 
 /* === Pagination === */
@@ -623,7 +639,46 @@
 
 .dialog-close-button:hover {
     -fx-background-color: -th-danger;
-    -fx-text-fill: white;
+    -fx-text-fill: -th-cream;
+}
+
+/* === Qty +/- buttons (CartView) === */
+.qty-plus-button {
+    -fx-background-color: -th-success;
+    -fx-text-fill: -th-cream;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-min-width: 34;
+    -fx-min-height: 34;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.qty-plus-button:disabled {
+    -fx-background-color: -th-bg-card;
+    -fx-text-fill: -th-text-muted;
+    -fx-opacity: 0.6;
+}
+
+/* === Nav badge (счётчик в навигации: cart, fav, orders) === */
+.nav-badge {
+    -fx-background-color: -th-danger;
+    -fx-text-fill: -th-cream;
+    -fx-font-size: 10px;
+    -fx-padding: 2 6;
+    -fx-background-radius: 8;
+}
+
+/* === Undo button (используется в CartView/FavoritesView/AdminProductsView) === */
+.undo-button {
+    -fx-background-color: #3b82f6;
+    -fx-text-fill: -th-cream;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.undo-button:hover {
+    -fx-background-color: #2563eb;
 }
 
 /* === Theme toggle button (Sun/Moon icon) === */
@@ -671,7 +726,7 @@
 
 .window-close-button:hover {
     -fx-background-color: -th-danger;
-    -fx-text-fill: white;
+    -fx-text-fill: -th-cream;
 }
 
 /* === Help button === */
@@ -687,7 +742,7 @@
 
 .help-button:hover {
     -fx-background-color: #3b82f6;
-    -fx-text-fill: white;
+    -fx-text-fill: -th-cream;
 }
 
 /* === Admin role badge === */

@@ -1,5 +1,6 @@
 package com.techhaven.security;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.logging.Level;
@@ -58,13 +59,13 @@ public class SecurityManager {
     private void initializeAESKey() {
         try {
             String passphrase = "DigitalHub-AES-Key-2024";
-            byte[] salt = "DigitalHubSalt12".getBytes("UTF-8");
+            byte[] salt = "DigitalHubSalt12".getBytes(StandardCharsets.UTF_8);
             // Деривация ключа: passphrase → PBKDF2 → 256-bit AES ключ
             PBEKeySpec spec = new PBEKeySpec(passphrase.toCharArray(), salt, 10000, KEY_LENGTH);
             SecretKeyFactory factory = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
             byte[] keyBytes = factory.generateSecret(spec).getEncoded();
             aesKey = new SecretKeySpec(keyBytes, "AES");
-        } catch (java.security.NoSuchAlgorithmException | java.security.spec.InvalidKeySpecException | java.io.UnsupportedEncodingException e) {
+        } catch (java.security.NoSuchAlgorithmException | java.security.spec.InvalidKeySpecException e) {
             LOGGER.log(Level.SEVERE, "Ошибка инициализации AES ключа", e);
         }
     }
@@ -136,13 +137,13 @@ public class SecurityManager {
             new SecureRandom().nextBytes(iv);
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             cipher.init(Cipher.ENCRYPT_MODE, aesKey, ivSpec);
-            byte[] encrypted = cipher.doFinal(plainText.getBytes("UTF-8"));
+            byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
 
             // Формат: "Base64(IV):Base64(шифротекст)" — IV нужен для расшифровки
             String ivBase64 = Base64.getEncoder().encodeToString(iv);
             String encBase64 = Base64.getEncoder().encodeToString(encrypted);
             return ivBase64 + ":" + encBase64;
-        } catch (java.security.NoSuchAlgorithmException | javax.crypto.NoSuchPaddingException | java.security.InvalidKeyException | java.security.InvalidAlgorithmParameterException | javax.crypto.IllegalBlockSizeException | javax.crypto.BadPaddingException | java.io.UnsupportedEncodingException e) {
+        } catch (java.security.NoSuchAlgorithmException | javax.crypto.NoSuchPaddingException | java.security.InvalidKeyException | java.security.InvalidAlgorithmParameterException | javax.crypto.IllegalBlockSizeException | javax.crypto.BadPaddingException e) {
             LOGGER.log(Level.SEVERE, "Ошибка шифрования", e);
             return plainText; // Fallback
         }
@@ -166,8 +167,8 @@ public class SecurityManager {
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             cipher.init(Cipher.DECRYPT_MODE, aesKey, ivSpec);
             byte[] decrypted = cipher.doFinal(encrypted);
-            return new String(decrypted, "UTF-8");
-        } catch (java.security.NoSuchAlgorithmException | javax.crypto.NoSuchPaddingException | java.security.InvalidKeyException | java.security.InvalidAlgorithmParameterException | javax.crypto.IllegalBlockSizeException | javax.crypto.BadPaddingException | java.io.UnsupportedEncodingException e) {
+            return new String(decrypted, StandardCharsets.UTF_8);
+        } catch (java.security.NoSuchAlgorithmException | javax.crypto.NoSuchPaddingException | java.security.InvalidKeyException | java.security.InvalidAlgorithmParameterException | javax.crypto.IllegalBlockSizeException | javax.crypto.BadPaddingException e) {
             LOGGER.log(Level.SEVERE, "Ошибка расшифрования", e);
             return encryptedText; // Fallback
         }

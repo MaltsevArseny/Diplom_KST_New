@@ -17,11 +17,44 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <javafx.version>21.0.5</javafx.version>
-        <!-- Платформенный classifier для JavaFX native jar'ов: win / mac / linux.
-             Можно переопределить через -Djavafx.platform=mac при кросс-сборке. -->
+        <!-- Дефолтный classifier — win. Перекрывается profile'ами ниже
+             (windows/macos/linux), активируемыми автоматически по OS. -->
         <javafx.platform>win</javafx.platform>
         <main.class>com.techhaven.MainApp</main.class>
     </properties>
+
+    <!-- ═══════ Кросс-платформенные профили ═══════
+         Maven автоматически активирует нужный profile по OS family.
+         Это позволяет собирать проект на Windows / macOS / Linux без
+         ручного указания -Djavafx.platform=...
+
+         Принудительное переопределение возможно через -P linux/-P macos. -->
+    <profiles>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os><family>windows</family></os>
+            </activation>
+            <properties><javafx.platform>win</javafx.platform></properties>
+        </profile>
+        <profile>
+            <id>macos</id>
+            <activation>
+                <os><family>mac</family></os>
+            </activation>
+            <properties><javafx.platform>mac</javafx.platform></properties>
+        </profile>
+        <profile>
+            <id>linux</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>linux</name>
+                </os>
+            </activation>
+            <properties><javafx.platform>linux</javafx.platform></properties>
+        </profile>
+    </profiles>
 
     <dependencies>
         <!-- JavaFX -->
@@ -142,6 +175,14 @@
                          проблему «Module javafx.graphics not found» при отсутствии
                          os-maven-plugin extension. -->
                     <useModulePath>false</useModulePath>
+                    <!-- ВАЖНО: интеграционные тесты используют ИЗОЛИРОВАННУЮ БД
+                         (target/test.db), а не production dist/digitalhub.db.
+                         Это предотвращает порчу пользовательских данных
+                         при запуске `mvn test`. Без этого DatabaseManager
+                         по default'у пишет в dist/digitalhub.db. -->
+                    <systemPropertyVariables>
+                        <db.path>${project.build.directory}/test.db</db.path>
+                    </systemPropertyVariables>
                     <argLine>
                         @{argLine}
                         -Djava.util.logging.config.file=${project.basedir}/src/main/resources/logging.properties

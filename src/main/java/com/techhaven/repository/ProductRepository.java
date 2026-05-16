@@ -196,17 +196,33 @@ public class ProductRepository implements IProductRepository {
 
     @Override
     public void updateStock(int productId, int quantity) {
+        try (Connection conn = db.getConnection()) {
+            decrementStock(conn, productId, quantity);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Ошибка обновления остатков", e);
+        }
+    }
+
+    /**
+     * Атомарно списывает {@code quantity} штук со склада товара {@code productId},
+     * но только если на складе остаётся достаточно ({@code stock_quantity >= quantity}).
+     *
+     * <p>Используется в транзакции оформления заказа: предохраняет от ухода остатка
+     * в минус под нагрузкой (race-condition между «проверил наличие» и «списал»).</p>
+     *
+     * @return {@code true} — списание удалось; {@code false} — на складе уже меньше {@code quantity}
+     * @throws SQLException если запрос не удался (вызывающий должен откатить транзакцию)
+     */
+    public boolean decrementStock(Connection conn, int productId, int quantity) throws SQLException {
         String sql = """
                 UPDATE Products SET stock_quantity = stock_quantity - ?,
                        updated_at = datetime('now','localtime')
-                WHERE id = ?""";
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                WHERE id = ? AND stock_quantity >= ?""";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, quantity);
             ps.setInt(2, productId);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Ошибка обновления остатков", e);
+            ps.setInt(3, quantity);
+            return ps.executeUpdate() > 0;
         }
     }
 

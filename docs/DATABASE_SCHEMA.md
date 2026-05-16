@@ -1,6 +1,6 @@
 # Модель базы данных TechHaven
 
-> Версия: 3.1 | СУБД: SQLite | Нормальная форма: **3NF**
+> Версия: 3.3 | СУБД: SQLite | Нормальная форма: **3NF**
 
 ## ER-диаграмма
 
@@ -29,6 +29,9 @@ erDiagram
 | Пароли | Хеш PBKDF2WithHmacSHA256 + соль (формат `salt:hash`) |
 | Внешние ключи | Включены через `PRAGMA foreign_keys = ON` |
 | Каскадное удаление | Только `OrderItems` при удалении `Orders` |
+| Транзакции оформления заказа | `OrderService.placeOrder` оборачивает создание заказа, позиций, списание стока, запись истории и очистку корзины в одну транзакцию (`setAutoCommit(false)` + `commit/rollback`) |
+| Защита остатков | Списание со склада — атомарным `UPDATE ... WHERE stock_quantity >= ?` (race-safe; нет ухода в минус) |
+| CHECK-constraints | `Products.price ≥ 0`, `Products.stock_quantity ≥ 0`, `Orders.total_amount ≥ 0`, `OrderItems.quantity > 0`, `OrderItems.price_at_order ≥ 0`, `Cart.quantity > 0` — гарантия неотрицательных значений и положительного количества на уровне БД |
 
 ---
 
@@ -88,8 +91,8 @@ erDiagram
 | `name` | TEXT NOT NULL | Название товара (уникально) |
 | `description` | TEXT | Краткое описание для карточки товара |
 | `category_id` | INTEGER NOT NULL FK | Ссылка на `Categories.id` |
-| `price` | REAL | Цена товара в рублях (₽) |
-| `stock_quantity` | INTEGER | Остаток на складе (шт.). 0 = «Нет в наличии», 1–5 = «Мало», >5 = «В наличии» |
+| `price` | REAL CHECK (≥ 0) | Цена товара в рублях (₽), не может быть отрицательной |
+| `stock_quantity` | INTEGER CHECK (≥ 0) | Остаток на складе (шт.), не уходит в минус. 0 = «Нет в наличии», 1–5 = «Мало», >5 = «В наличии» |
 | `specifications` | TEXT | Тех. характеристики (формат: `ключ:значение;ключ:значение`) |
 | `image_path` | TEXT | Относительный путь к изображению товара |
 | `created_at` | TEXT | Дата/время добавления товара |
@@ -115,7 +118,7 @@ erDiagram
 | `comment` | TEXT | Комментарий покупателя к заказу |
 | `planned_delivery_date` | TEXT | Фактическая дата доставки (назначает администратор) |
 | `planned_delivery_interval` | TEXT | Фактический интервал доставки (назначает администратор) |
-| `total_amount` | REAL | Итоговая сумма заказа в рублях (₽) |
+| `total_amount` | REAL CHECK (≥ 0) | Итоговая сумма заказа в рублях (₽), не может быть отрицательной |
 | `created_at` | TEXT | Системная дата создания записи |
 | `updated_at` | TEXT | Системная дата последнего изменения |
 
@@ -132,8 +135,8 @@ erDiagram
 | `id` | INTEGER PK | Уникальный идентификатор позиции |
 | `order_id` | INTEGER FK | Ссылка на `Orders.id` (ON DELETE CASCADE) |
 | `product_id` | INTEGER FK | Ссылка на `Products.id` |
-| `quantity` | INTEGER | Количество единиц товара |
-| `price_at_order` | REAL | Цена за единицу на момент заказа в рублях (₽) — фиксируется, чтобы изменение цены товара не повлияло на исторические заказы |
+| `quantity` | INTEGER CHECK (> 0) | Количество единиц товара (только положительное) |
+| `price_at_order` | REAL CHECK (≥ 0) | Цена за единицу на момент заказа в рублях (₽) — фиксируется, чтобы изменение цены товара не повлияло на исторические заказы |
 | `created_at` | TEXT | Дата/время добавления позиции |
 
 **Индексы:** `idx_orderitems_order` — быстрый доступ к составу заказа.
@@ -147,9 +150,11 @@ erDiagram
 | `id` | INTEGER PK | Уникальный идентификатор записи |
 | `user_id` | INTEGER FK | Ссылка на `Users.id` — чья корзина |
 | `product_id` | INTEGER FK | Ссылка на `Products.id` — какой товар |
-| `quantity` | INTEGER | Количество единиц (≥ 1, ограничено остатком на складе) |
+| `quantity` | INTEGER CHECK (> 0) | Количество единиц (≥ 1, ограничено остатком на складе) |
 | `created_at` | TEXT | Дата/время добавления в корзину |
 | `updated_at` | TEXT | Дата/время последнего изменения количества |
+
+**Индексы:** `idx_cart_user_product` (UNIQUE) — пара `(user_id, product_id)` уникальна; защита от логических дублей. При повторном добавлении того же товара `CartRepository.addToCart` суммирует количество в существующей записи.
 
 ---
 
@@ -161,6 +166,8 @@ erDiagram
 | `user_id` | INTEGER FK | Ссылка на `Users.id` — чьё избранное |
 | `product_id` | INTEGER FK | Ссылка на `Products.id` — какой товар |
 | `created_at` | TEXT | Дата/время добавления в избранное |
+
+**Индексы:** `idx_favorites_user_product` (UNIQUE) — пара `(user_id, product_id)` уникальна.
 
 ---
 
@@ -188,3 +195,5 @@ erDiagram
 | `idx_orders_status` | Orders | status_id | INDEX | Фильтр по статусу |
 | `idx_orderitems_order` | OrderItems | order_id | INDEX | Состав заказа |
 | `idx_products_name` | Products | name | UNIQUE | Уникальность названия |
+| `idx_cart_user_product` | Cart | (user_id, product_id) | UNIQUE | Один товар у пользователя = одна запись в корзине |
+| `idx_favorites_user_product` | Favorites | (user_id, product_id) | UNIQUE | Один товар у пользователя = одна запись в избранном |

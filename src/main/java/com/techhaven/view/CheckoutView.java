@@ -279,7 +279,7 @@ public class CheckoutView {
         commentArea.setPrefRowCount(2);
         commentArea.setWrapText(true);
         commentArea.getStyleClass().add("text-area");
-        commentArea.setStyle("-fx-control-inner-background: -th-bg-card; -fx-text-fill: white; -fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: -th-border;");
+        commentArea.setStyle("-fx-control-inner-background: -th-bg-card; -fx-text-fill: -th-cream; -fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: -th-border;");
 
         Label paymentNote = new Label("💳 Оплата при получении (постоплата)");
         paymentNote.setStyle("-fx-text-fill: -th-success; -fx-font-size: 12px; -fx-padding: 4 0 0 0;");
@@ -297,7 +297,7 @@ public class CheckoutView {
         confirmBtn.getStyleClass().add("btn-primary");
         confirmBtn.setPrefHeight(50);
         confirmBtn.setPrefWidth(300);
-        confirmBtn.setStyle("-fx-font-size: 16px; -fx-background-color: -th-accent; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;");
+        confirmBtn.setStyle("-fx-font-size: 16px; -fx-background-color: -th-accent; -fx-text-fill: -th-cream; -fx-background-radius: 8; -fx-font-weight: bold;");
         confirmBtn.setTooltip(new javafx.scene.control.Tooltip("Подтвердить и оформить заказ"));
         confirmBtn.setOnAction(e -> {
             // Сброс ошибок
@@ -409,7 +409,7 @@ public class CheckoutView {
         textContent.setAlignment(Pos.CENTER);
 
         Label title = new Label("Заказ оформлен!");
-        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white;");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: -th-cream;");
 
         Label subtitle = new Label("Ваш заказ успешно принят в работу");
         subtitle.setStyle("-fx-text-fill: -th-success; -fx-font-size: 16px; -fx-font-weight: bold;");

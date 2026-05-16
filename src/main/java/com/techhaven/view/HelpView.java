@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -77,21 +76,7 @@ public class HelpView {
 
         Button closeBtn = new Button("×");
         closeBtn.setTooltip(new javafx.scene.control.Tooltip("Закрыть справку"));
-        closeBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: -th-text-secondary;" +
-            "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;" +
-            "-fx-background-radius: 4;"
-        );
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle(
-            "-fx-background-color: -th-danger; -fx-text-fill: white;" +
-            "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;" +
-            "-fx-background-radius: 4;"
-        ));
-        closeBtn.setOnMouseExited(e -> closeBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: -th-text-secondary;" +
-            "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;" +
-            "-fx-background-radius: 4;"
-        ));
+        closeBtn.getStyleClass().addAll("window-control-button", "window-close-button");
         closeBtn.setOnAction(e -> stage.close());
 
         header.getChildren().addAll(titleLabel, hSpacer, closeBtn);
@@ -134,9 +119,13 @@ public class HelpView {
 
     /**
      * Генерирует якорь из текста заголовка (аналогично GitHub Markdown).
-     * Пример: "🚀 Запуск приложения" → "-запуск-приложения"
+     * Пример: "🚀 Запуск приложения" → "запуск-приложения".
+     *
+     * <p>Package-private для модульного тестирования: TOC-ссылки из
+     * Admin/UserManual.md должны попадать ровно в тот же якорь, который
+     * генерируется для соответствующего H2/H3 заголовка.</p>
      */
-    private static String generateAnchor(String headerText) {
+    static String generateAnchor(String headerText) {
         String anchor = headerText.toLowerCase()
             .replaceAll("[^\\p{L}\\p{N} -]", "")   // убрать спецсимволы и emoji
             .trim()
@@ -146,23 +135,18 @@ public class HelpView {
 
     /**
      * Читает Markdown-файл.
-     * Сначала ищет рядом с JAR (dist/ или рабочая директория), затем в classpath.
+     * Резолв пути через {@link com.techhaven.config.AppPaths#findDocumentFile(String)} —
+     * проверяет data-директорию рядом с JAR, её родителя, и рабочую директорию.
+     * Если файл не найден на диске — fallback на classpath (/help/).
      */
     private static String readMarkdownFile(String filename) {
-        // 1. Попытка найти файл в рабочей директории или на один уровень выше
-        String[] searchPaths = {
-            filename,
-            "../" + filename,
-            "../../" + filename
-        };
-        for (String sp : searchPaths) {
-            Path p = Paths.get(sp);
-            if (Files.exists(p)) {
-                try {
-                    return Files.readString(p, StandardCharsets.UTF_8);
-                } catch (IOException e) {
-                    LOGGER.warning(String.format("Не удалось прочитать файл: %s — %s", p, e.getMessage()));
-                }
+        // 1. Поиск через AppPaths (без зависимости от CWD)
+        Path p = com.techhaven.config.AppPaths.findDocumentFile(filename);
+        if (p != null) {
+            try {
+                return Files.readString(p, StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                LOGGER.warning(String.format("Не удалось прочитать файл: %s — %s", p, e.getMessage()));
             }
         }
 
@@ -183,12 +167,59 @@ public class HelpView {
     private static final Pattern LINK_PATTERN = Pattern.compile("\\[(.+?)\\]\\(#(.+?)\\)");
 
     /**
+     * Делит markdown-содержимое на строки, нормализуя любые line endings
+     * (LF / CRLF / CR) к чистому LF и удаляя trailing «\r», если он остался.
+     *
+     * <p>Package-private для прямого регрессионного тестирования: исторический
+     * CRLF-баг привёл к тому, что TOC-ссылки в Admin/UserManual.md рендерились
+     * как plain text вместо Hyperlink — {@code .matches("^[-*] .*")} ломалось
+     * на trailing «\r». Тест на этом методе фиксирует контракт «после split
+     * ни в одной строке не должно остаться \r».</p>
+     */
+    /**
+     * Возвращает {@code true}, если строка должна рендериться как кликабельная
+     * TOC-ссылка (маркер списка «- » или «* », внутри которой найдена
+     * markdown-ссылка {@code [text](#anchor)}).
+     *
+     * <p>Прямой helper для регрессионного теста — историческая ошибка
+     * (trailing «\r» из CRLF-файлов делал результат {@code false}, и пункт
+     * TOC уходил в ветку «обычный параграф») должна ловиться этим тестом.</p>
+     */
+    static boolean isTocHyperlink(String line) {
+        if (line == null) return false;
+        if (!line.matches("^[-*] .*")) return false;
+        return LINK_PATTERN.matcher(line.substring(2)).find();
+    }
+
+    static String[] splitLines(String content) {
+        if (content == null) return new String[0];
+        // \\r?\\n покрывает Windows CRLF и Unix LF. Одиночный CR (\\r) без LF
+        // встречается крайне редко (старые Mac), но на всякий случай чистим
+        // trailing \\r у каждой строки — split по \\r?\\n один \\r не отрежет,
+        // если он стоит сам по себе перед концом файла.
+        String[] raw = content.split("\\r?\\n", -1);
+        for (int i = 0; i < raw.length; i++) {
+            if (raw[i] != null && raw[i].endsWith("\r")) {
+                raw[i] = raw[i].substring(0, raw[i].length() - 1);
+            }
+        }
+        return raw;
+    }
+
+    /**
      * Простой Markdown → JavaFX Label рендер.
      * Поддерживает: # h1-h3, | таблицы, > цитаты, ``` блоки, --- разделители,
      * [text](#anchor) ссылки в оглавлении, обычный текст.
+     *
+     * <p><b>Важно про line endings:</b> Admin/UserManual.md в Windows-репозитории
+     * хранятся как CRLF. Если split'ить по «\n», в каждой строке остаётся
+     * trailing «\r», из-за чего {@code line.matches("^[-*] .*")} НЕ срабатывает
+     * (точка в regex не матчит «\r»), и пункты TOC рендерились как plain text
+     * без кликабельности. Поэтому split по «\\r?\\n» + finishing strip trailing
+     * «\r» — обязательное условие корректного рендера TOC.</p>
      */
     private static void renderMarkdown(String content, VBox container) {
-        String[] lines = content.split("\n");
+        String[] lines = splitLines(content);
         int i = 0;
         while (i < lines.length) {
             String line = lines[i];
@@ -204,9 +235,10 @@ public class HelpView {
                 Label codeLabel = new Label(code.toString().stripTrailing());
                 codeLabel.setStyle(
                     "-fx-font-family: 'Consolas', 'Courier New', monospace;" +
-                    "-fx-font-size: 12px; -fx-text-fill: #a3e635;" +
-                    "-fx-background-color: #1a1a2e; -fx-padding: 10 14;" +
-                    "-fx-background-radius: 6;"
+                    "-fx-font-size: 12px; -fx-text-fill: -th-success;" +
+                    "-fx-background-color: -th-bg-card; -fx-padding: 10 14;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-border-color: -th-border; -fx-border-radius: 6; -fx-border-width: 1;"
                 );
                 codeLabel.setWrapText(true);
                 codeLabel.setMaxWidth(800);
@@ -315,7 +347,7 @@ public class HelpView {
                 // Строим таблицу как VBox строк (гарантирует корректные фоны)
                 VBox tableBox = new VBox();
                 tableBox.setStyle(
-                    "-fx-background-color: #1e1e30; -fx-background-radius: 8;" +
+                    "-fx-background-color: -th-bg-card; -fx-background-radius: 8;" +
                     "-fx-border-color: -th-border; -fx-border-radius: 8; -fx-border-width: 1;"
                 );
                 tableBox.setMaxWidth(790);
@@ -331,12 +363,12 @@ public class HelpView {
                     rowBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
                     if (isHdr) {
-                        rowBox.setStyle("-fx-background-color: #2a2a44;" +
+                        rowBox.setStyle("-fx-background-color: -th-bg-secondary;" +
                             "-fx-border-color: transparent transparent -th-border transparent;" +
                             "-fx-border-width: 0 0 1 0;" +
                             (r == 0 ? "-fx-background-radius: 7 7 0 0;" : ""));
                     } else {
-                        String bgColor = (dataIdx % 2 == 0) ? "#1e1e30" : "#252540";
+                        String bgColor = (dataIdx % 2 == 0) ? "-th-bg-card" : "-th-bg-hover";
                         String radius = (r == dataRows.size() - 1) ? "-fx-background-radius: 0 0 7 7;" : "";
                         rowBox.setStyle("-fx-background-color: " + bgColor + ";" + radius);
                         dataIdx++;
@@ -351,9 +383,9 @@ public class HelpView {
                         cell.prefWidthProperty().bind(tableBox.widthProperty().divide(cols));
                         cell.setMaxWidth(Double.MAX_VALUE);
                         if (isHdr) {
-                            cell.setStyle("-fx-text-fill: -th-accent-light; -fx-font-weight: bold; -fx-font-size: 12px;");
+                            cell.setStyle("-fx-text-fill: -th-accent; -fx-font-weight: bold; -fx-font-size: 12px;");
                         } else {
-                            cell.setStyle("-fx-text-fill: #d0d0e8; -fx-font-size: 12px;");
+                            cell.setStyle("-fx-text-fill: -th-text-primary; -fx-font-size: 12px;");
                         }
                         rowBox.getChildren().add(cell);
                     }
@@ -375,25 +407,24 @@ public class HelpView {
                     String linkText = linkMatcher.group(1);
                     String anchor = linkMatcher.group(2);
                     Hyperlink link = new Hyperlink("  •  " + linkText);
-                    link.setStyle(
-                        "-fx-text-fill: #818cf8; -fx-font-size: 13px;" +
-                        "-fx-border-color: transparent; -fx-padding: 1 0 1 8;"
-                    );
-                    link.setOnMouseEntered(e -> link.setStyle(
-                        "-fx-text-fill: -th-accent-light; -fx-font-size: 13px; -fx-underline: true;" +
-                        "-fx-border-color: transparent; -fx-padding: 1 0 1 8;"
-                    ));
-                    link.setOnMouseExited(e -> link.setStyle(
-                        "-fx-text-fill: #818cf8; -fx-font-size: 13px;" +
-                        "-fx-border-color: transparent; -fx-padding: 1 0 1 8;"
-                    ));
+                    // Подчёркивание включено сразу, чтобы пользователь видел: это ссылка
+                    // (не просто фиолетовый текст). Курсор-рука усиливает affordance.
+                    String baseStyle =
+                        "-fx-text-fill: -th-accent; -fx-font-size: 13px; -fx-underline: true;" +
+                        "-fx-border-color: transparent; -fx-padding: 1 0 1 8; -fx-cursor: hand;";
+                    String hoverStyle =
+                        "-fx-text-fill: -th-accent-hover; -fx-font-size: 13px; -fx-underline: true;" +
+                        "-fx-border-color: transparent; -fx-padding: 1 0 1 8; -fx-cursor: hand;";
+                    link.setStyle(baseStyle);
+                    link.setOnMouseEntered(e -> link.setStyle(hoverStyle));
+                    link.setOnMouseExited(e -> link.setStyle(baseStyle));
                     link.setOnAction(e -> scrollToAnchor(anchor));
                     link.setMaxWidth(780);
                     container.getChildren().add(link);
                 } else {
                     String text = "  •  " + stripInlineMarkdown(itemText);
                     Label lbl = new Label(text);
-                    lbl.setStyle("-fx-text-fill: #c8c8dc; -fx-font-size: 13px;");
+                    lbl.setStyle("-fx-text-fill: -th-text-primary; -fx-font-size: 13px;");
                     lbl.setWrapText(true);
                     lbl.setMaxWidth(780);
                     VBox.setMargin(lbl, new Insets(1, 0, 1, 8));
@@ -414,7 +445,7 @@ public class HelpView {
 
             // Обычный параграф
             Label lbl = new Label(stripInlineMarkdown(line));
-            lbl.setStyle("-fx-text-fill: #c8c8dc; -fx-font-size: 13px;");
+            lbl.setStyle("-fx-text-fill: -th-text-primary; -fx-font-size: 13px;");
             lbl.setWrapText(true);
             lbl.setMaxWidth(800);
             container.getChildren().add(lbl);

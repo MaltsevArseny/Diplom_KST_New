@@ -89,8 +89,7 @@ public class MainLayout {
 
         // Бейдж корзины
         cartBadge = new Label();
-        cartBadge.getStyleClass().add("badge");
-        cartBadge.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
+        cartBadge.getStyleClass().add("nav-badge");
         cartBadge.setVisible(false);
 
         StackPane cartPane = new StackPane(cartBtn, cartBadge);
@@ -102,8 +101,7 @@ public class MainLayout {
 
         // Бейдж избранного
         favBadge = new Label();
-        favBadge.getStyleClass().add("badge");
-        favBadge.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
+        favBadge.getStyleClass().add("nav-badge");
         favBadge.setVisible(false);
 
         StackPane favPane = new StackPane(favBtn, favBadge);
@@ -115,8 +113,7 @@ public class MainLayout {
 
         // Бейдж заказов
         ordersBadge = new Label();
-        ordersBadge.getStyleClass().add("badge");
-        ordersBadge.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
+        ordersBadge.getStyleClass().add("nav-badge");
         ordersBadge.setVisible(false);
 
         StackPane ordersPane = new StackPane(ordersBtn, ordersBadge);
@@ -328,7 +325,7 @@ public class MainLayout {
         cat.getStyleClass().add("badge");
 
         Label name = new Label(product.getName());
-        name.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: white;");
+        name.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: -th-cream;");
         name.setWrapText(true);
 
         Label price = new Label(product.getFormattedPrice());

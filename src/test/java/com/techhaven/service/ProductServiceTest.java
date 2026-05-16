@@ -277,4 +277,85 @@ class ProductServiceTest {
                 "Товар " + p.getName() + " не в наличии");
         }
     }
+
+    // === Валидация товара ===
+
+    @Test
+    @DisplayName("validate: пустое имя → ошибка")
+    void validateRejectsEmptyName() {
+        Product p = new Product();
+        p.setName("");
+        p.setPrice(100.0);
+        p.setStockQuantity(5);
+        p.setCategory("Процессоры");
+        assertNotNull(service.validate(p, 0), "Пустое имя должно отбиваться");
+    }
+
+    @Test
+    @DisplayName("validate: отрицательная цена → ошибка")
+    void validateRejectsNegativePrice() {
+        Product p = new Product();
+        p.setName("Test Product Negative Price");
+        p.setPrice(-1.0);
+        p.setStockQuantity(5);
+        p.setCategory("Процессоры");
+        assertNotNull(service.validate(p, 0));
+    }
+
+    @Test
+    @DisplayName("validate: отрицательный остаток → ошибка")
+    void validateRejectsNegativeStock() {
+        Product p = new Product();
+        p.setName("Test Product Negative Stock");
+        p.setPrice(100.0);
+        p.setStockQuantity(-1);
+        p.setCategory("Процессоры");
+        assertNotNull(service.validate(p, 0));
+    }
+
+    @Test
+    @DisplayName("validate: пустая категория → ошибка")
+    void validateRejectsEmptyCategory() {
+        Product p = new Product();
+        p.setName("Test Product Empty Cat");
+        p.setPrice(100.0);
+        p.setStockQuantity(5);
+        p.setCategory("");
+        assertNotNull(service.validate(p, 0));
+    }
+
+    @Test
+    @DisplayName("validate: несуществующая категория → ошибка")
+    void validateRejectsNonExistentCategory() {
+        Product p = new Product();
+        p.setName("Test Product Nonexistent Cat");
+        p.setPrice(100.0);
+        p.setStockQuantity(5);
+        p.setCategory("Категория-которой-нет-в-БД");
+        String err = service.validate(p, 0);
+        assertNotNull(err);
+        assertTrue(err.contains("Категория"), "Ошибка должна указывать на категорию: " + err);
+    }
+
+    @Test
+    @DisplayName("validate: дубликат имени → ошибка")
+    void validateRejectsDuplicateName() {
+        Product existing = service.getAllProducts().get(0);
+        Product p = new Product();
+        p.setName(existing.getName());
+        p.setPrice(100.0);
+        p.setStockQuantity(5);
+        p.setCategory("Процессоры");
+        String err = service.validate(p, 0);
+        assertNotNull(err, "Дубликат имени должен отбиваться");
+    }
+
+    @Test
+    @DisplayName("validate: одно и то же имя при редактировании ТОГО ЖЕ товара → OK")
+    void validateAllowsSameNameForSameProduct() {
+        Product existing = service.getAllProducts().get(0);
+        // Тот же товар, тот же id — должен пройти валидацию
+        assertNull(service.validate(existing, existing.getId()),
+            "Редактирование товара со своим именем должно проходить");
+    }
 }

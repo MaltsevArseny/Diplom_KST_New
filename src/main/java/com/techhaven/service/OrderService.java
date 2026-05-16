@@ -1,8 +1,12 @@
 package com.techhaven.service;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.techhaven.config.DatabaseManager;
 import com.techhaven.config.SessionManager;
 import com.techhaven.model.CartItem;
 import com.techhaven.model.Order;
@@ -30,6 +34,7 @@ public class OrderService {
     static final String MSG_EMPTY_INTERVAL = "Выберите интервал доставки";
     static final String MSG_EMPTY_CART = "Корзина пуста";
     static final String MSG_CREATE_ERROR = "Ошибка создания заказа";
+    static final String MSG_STOCK_RACE = "Товар закончился, пока вы оформляли заказ: ";
 
     private final OrderRepository orderRepo = new OrderRepository();
     private final CartRepository cartRepo = new CartRepository();
@@ -79,7 +84,10 @@ public class OrderService {
             .mapToDouble(CartItem::getSubtotal)
             .sum();
 
-        // Шаг 6: Создание записи заказа в БД
+        // Шаг 6-9: Атомарное оформление заказа в одной транзакции.
+        // Если на любом шаге происходит сбой (включая race на остатках —
+        // см. ProductRepository.decrementStock), вся транзакция откатывается:
+        // ни заказ, ни позиции, ни история, ни списание стока в БД не остаются.
         Order order = new Order();
         order.setUserId(userId);
         order.setStatus(com.techhaven.model.OrderStatus.NEW.getDisplayName());
@@ -88,32 +96,49 @@ public class OrderService {
         order.setDeliveryTimeInterval(deliveryTimeInterval.trim());
         order.setComment(comment != null ? comment.trim() : null);
         order.setTotalAmount(total);
-        order = orderRepo.create(order);
 
-        if (order == null || order.getId() <= 0) {
+        try (Connection conn = DatabaseManager.getInstance().getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                Order created = orderRepo.create(conn, order);
+                if (created == null || created.getId() <= 0) {
+                    conn.rollback();
+                    return MSG_CREATE_ERROR;
+                }
+
+                for (CartItem item : cartItems) {
+                    OrderItem orderItem = new OrderItem(
+                        created.getId(), item.getProductId(),
+                        item.getQuantity(), item.getProductPrice()
+                    );
+                    orderRepo.createOrderItem(conn, orderItem);
+
+                    // Атомарное списание: UPDATE ... WHERE stock_quantity >= qty.
+                    // Если на складе уже меньше (параллельная транзакция успела
+                    // забрать товар) — UPDATE затронет 0 строк, откатываем всё.
+                    boolean ok = productRepo.decrementStock(conn, item.getProductId(), item.getQuantity());
+                    if (!ok) {
+                        conn.rollback();
+                        return MSG_STOCK_RACE + item.getProductName();
+                    }
+                }
+
+                orderRepo.addStatusHistory(conn, created.getId(),
+                    com.techhaven.model.OrderStatus.NEW.getDisplayName(), userId);
+                cartRepo.clearCart(conn, userId);
+
+                conn.commit();
+                LOGGER.info(String.format("Заказ #%d оформлен", created.getId()));
+                return null; // null = success
+            } catch (SQLException txEx) {
+                try { conn.rollback(); } catch (SQLException ignore) {}
+                LOGGER.log(Level.SEVERE, "Ошибка транзакции оформления заказа", txEx);
+                return MSG_CREATE_ERROR;
+            }
+        } catch (SQLException connEx) {
+            LOGGER.log(Level.SEVERE, "Не удалось открыть транзакцию для оформления заказа", connEx);
             return MSG_CREATE_ERROR;
         }
-
-        // Шаг 7: Создание позиций заказа и списание остатков со склада
-        for (CartItem item : cartItems) {
-            OrderItem orderItem = new OrderItem(
-                order.getId(), item.getProductId(),
-                item.getQuantity(), item.getProductPrice()
-            );
-            orderRepo.createOrderItem(orderItem);
-
-            // Уменьшение остатков
-            productRepo.updateStock(item.getProductId(), item.getQuantity());
-        }
-
-        // Шаг 8: Запись первого статуса в историю
-        orderRepo.addStatusHistory(order.getId(), com.techhaven.model.OrderStatus.NEW.getDisplayName(), userId);
-
-        // Шаг 9: Очистка корзины после успешного оформления
-        cartRepo.clearCart(userId);
-
-        LOGGER.info(String.format("Заказ #%d оформлен", order.getId()));
-        return null; // null = success
     }
 
     /**
@@ -153,11 +178,30 @@ public class OrderService {
 
     /**
      * Обновляет статус заказа с проверкой корректности перехода.
+     *
+     * <p>Право вызова: ADMIN всегда; USER только если отменяет собственный
+     * незавершённый заказ (newStatus = «Отменён» и order.userId совпадает
+     * с текущей сессией).</p>
+     *
      * @return null при успехе, строка ошибки при недопустимом переходе
+     * @throws SecurityException если у вызывающего нет прав на эту операцию
      */
     public String updateStatus(int orderId, String newStatus) {
         Order order = orderRepo.findById(orderId);
         if (order == null) return "Заказ не найден";
+
+        // ── Проверка прав: ADMIN или владелец-USER при отмене ────────────────
+        String checkNorm = newStatus == null ? "" : newStatus
+            .replace("Завершен", "Завершён")
+            .replace("Отменен", "Отменён")
+            .replace("Подтвержден", "Подтверждён");
+        boolean isCancel = "Отменён".equals(checkNorm);
+        SessionManager session = SessionManager.getInstance();
+        boolean isOwner = session.getCurrentUserId() == order.getUserId();
+        if (!session.isAdmin() && !(isCancel && isOwner)) {
+            throw new SecurityException("Изменение статуса доступно администратору; "
+                + "владелец заказа может только отменить свой незавершённый заказ");
+        }
 
         String currentStatus = order.getStatus();
         // Нормализуем е→ё (в БД хранится ё)
@@ -193,7 +237,13 @@ public class OrderService {
         return null;
     }
 
+    /**
+     * Назначает плановую дату и интервал доставки заказа.
+     *
+     * @throws SecurityException если вызывающий не имеет роли ADMIN
+     */
     public void updatePlannedDelivery(int orderId, String date, String interval) {
+        SessionManager.getInstance().requireAdmin();
         orderRepo.updatePlannedDelivery(orderId, date, interval);
         // Не добавляем запись в OrderStatusHistory — это не смена статуса,
         // а назначение даты доставки (факт фиксируется в поле planned_delivery_date)

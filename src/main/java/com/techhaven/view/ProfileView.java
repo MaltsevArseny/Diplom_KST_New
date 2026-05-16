@@ -82,7 +82,10 @@ public class ProfileView {
         saveProfileBtn.setPrefHeight(40);
         saveProfileBtn.setOnAction(e -> {
             String newName  = nameField.getText().trim();
-            String newEmail = emailField.getText().trim();
+            // Email нормализуется в lowercase — login ищет пользователя по нижнему регистру
+            // (AuthService.login делает email.trim().toLowerCase()), и сохранение в смешанном
+            // регистре приводило к тому, что после смены email пользователь не мог войти.
+            String newEmail = emailField.getText().trim().toLowerCase();
             String newPhone = phoneField.getText().trim();
 
             if (newName.length() < 2) {

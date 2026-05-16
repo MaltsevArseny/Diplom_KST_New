@@ -45,7 +45,7 @@ public class NotificationPanel extends VBox {
         this.setPickOnBounds(true);
 
         Label msgLabel = new Label(message);
-        msgLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        msgLabel.setStyle("-fx-text-fill: -th-cream; -fx-font-size: 14px;");
 
         Button undoBtn = new Button("Отменить");
         undoBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-cursor: hand; -fx-font-size: 14px;");

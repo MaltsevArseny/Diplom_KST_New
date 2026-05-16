@@ -26,9 +26,11 @@ import java.util.stream.Collectors;
 public class DatabaseManager {
     private static final Logger LOGGER = Logger.getLogger(DatabaseManager.class.getName());
 
-    /** URL подключения к БД; можно переопределить через -Ddb.path=... */
+    /** URL подключения к БД. Путь резолвится через {@link AppPaths#dbFile()} —
+     *  по умолчанию data-директория рядом с JAR'ом. Можно переопределить
+     *  через -Ddb.path=&lt;absolute-path&gt; либо -Dapp.data.dir=&lt;dir&gt;. */
     private static final String DB_URL = "jdbc:sqlite:" +
-            System.getProperty("db.path", "dist/digitalhub.db");
+            AppPaths.dbFile().toString().replace('\\', '/');
     private static DatabaseManager instance;
 
     private DatabaseManager() {

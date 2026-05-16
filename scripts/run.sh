@@ -45,4 +45,7 @@ mkdir -p dist
 cp -f target/techhaven-1.0.0.jar dist/DigitalHub.jar
 
 echo "[OK] Запуск приложения из dist/..."
-java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar
+# cd в dist/ — AppPaths определит dataDir как папку рядом с JAR (dist/),
+# поэтому БД и product_images создадутся именно там, без -Ddb.path.
+cd dist
+java -Dfile.encoding=UTF-8 -jar DigitalHub.jar

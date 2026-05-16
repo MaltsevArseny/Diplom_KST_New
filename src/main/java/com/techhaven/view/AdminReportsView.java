@@ -73,7 +73,7 @@ public class AdminReportsView {
         // Стиль обеих кнопок — единый
         String btnStyle     = "-fx-background-color:-th-bg-secondary;-fx-border-color:-th-border;-fx-border-width:1;" +
                               "-fx-border-radius:8;-fx-background-radius:8;-fx-cursor:hand;-fx-padding:6 18;";
-        String btnHoverStyle = "-fx-background-color:#2d2d48;-fx-border-color:-th-accent-hover;-fx-border-width:1;" +
+        String btnHoverStyle = "-fx-background-color:-th-bg-hover;-fx-border-color:-th-accent-hover;-fx-border-width:1;" +
                                "-fx-border-radius:8;-fx-background-radius:8;-fx-cursor:hand;-fx-padding:6 18;";
 
         // Кнопка Печать — стилизованная иконка принтера
@@ -254,8 +254,8 @@ public class AdminReportsView {
                 VBox tile = new VBox(6, hdr, chart);
                 tile.setPadding(new Insets(10, 12, 10, 12));
                 tile.setStyle(
-                    "-fx-background-color:#1a1a2e;" +
-                    "-fx-border-color:#2d2d48;-fx-border-width:1;" +
+                    "-fx-background-color:-th-bg-card;" +
+                    "-fx-border-color:-th-border;-fx-border-width:1;" +
                     "-fx-border-radius:10;-fx-background-radius:10;");
                 HBox.setHgrow(tile, Priority.ALWAYS);
                 tileRow.getChildren().add(tile);
@@ -295,9 +295,14 @@ public class AdminReportsView {
             if (rs.next()) ordered = rs.getDouble(1);
         } catch (Exception e) { LOG.log(Level.WARNING, "conv ordered", e); }
 
-        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
-            ResultSet rs = s.executeQuery(
-                "SELECT COUNT(*) FROM (SELECT user_id FROM Orders GROUP BY user_id HAVING COUNT(*)>1)");
+        // «Повторные» теперь УВАЖАЮТ выбранный период: считаем пользователей,
+        // оформивших > 1 заказа В ПРЕДЕЛАХ диапазона дат. Раньше всегда выдавалось
+        // значение за всё время, и доля повторных не отражала текущий период.
+        String sql3 = "SELECT COUNT(*) FROM (SELECT user_id FROM Orders"
+            + where("order_date", f, t, true)
+            + " GROUP BY user_id HAVING COUNT(*)>1)";
+        try (Connection c = db.getConnection(); PreparedStatement ps = ps(c, sql3, f, t)) {
+            ResultSet rs = ps.executeQuery();
             if (rs.next()) repeat = rs.getDouble(1);
         } catch (Exception e) { LOG.log(Level.WARNING, "conv repeat", e); }
 
@@ -566,8 +571,8 @@ public class AdminReportsView {
         VBox wrapper = new VBox(8, hdr, chart);
         wrapper.setPadding(new Insets(14, 16, 14, 16));
         wrapper.setStyle(
-            "-fx-background-color:#1a1a2e;" +
-            "-fx-border-color:#2d2d48;-fx-border-width:1;" +
+            "-fx-background-color:-th-bg-card;" +
+            "-fx-border-color:-th-border;-fx-border-width:1;" +
             "-fx-border-radius:12;-fx-background-radius:12;");
         VBox.setVgrow(chart, Priority.ALWAYS);
         return wrapper;
@@ -575,16 +580,20 @@ public class AdminReportsView {
 
 
 
-    /** \u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 \u0441 Tooltip \u043d\u0430 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0438 \u043f\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044f */
+    /** \u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 KPI \u0441 Tooltip \u043d\u0430 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0438 \u043f\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044f. */
     private VBox cardTip(String title, String value, String color, String tip) {
         Label tl = new Label(title); tl.setStyle("-fx-text-fill:-th-text-secondary;-fx-font-size:12px;-fx-cursor:hand;");
         tl.setTooltip(new javafx.scene.control.Tooltip(tip));
-        Label vl = new Label(value); vl.setStyle("-fx-text-fill:white;-fx-font-size:20px;-fx-font-weight:bold;");
+        // \u0417\u043d\u0430\u0447\u0435\u043d\u0438\u0435 KPI \u2014 \u041d\u0415 -th-cream (\u043e\u043d \u043f\u043e\u0447\u0442\u0438 \u0441\u043e\u0432\u043f\u0430\u0434\u0430\u0435\u0442 \u043f\u043e \u0446\u0432\u0435\u0442\u0443 \u0441 \u043f\u0435\u0441\u043e\u0447\u043d\u044b\u043c \u0444\u043e\u043d\u043e\u043c
+        // \u0441\u0432\u0435\u0442\u043b\u043e\u0439 \u0442\u0435\u043c\u044b \u0438 \u0434\u0435\u043b\u0430\u0435\u0442 \u0446\u0438\u0444\u0440\u044b \u043d\u0435\u0447\u0438\u0442\u0430\u0435\u043c\u044b\u043c\u0438). \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u043c -th-text-primary \u2014
+        // \u043e\u043d \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u043f\u043e\u0434\u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f \u0442\u0435\u043c\u043e\u0439: \u0442\u0451\u043c\u043d\u044b\u0439 \u043a\u043e\u0440\u0438\u0447\u043d\u0435\u0432\u044b\u0439 \u043d\u0430 \u043f\u0435\u0441\u043a\u0435 / \u0441\u0432\u0435\u0442\u043b\u044b\u0439
+        // \u043b\u0430\u0432\u0430\u043d\u0434\u043e\u0432\u044b\u0439 \u043d\u0430 \u0442\u0451\u043c\u043d\u043e\u043c \u0444\u043e\u043d\u0435.
+        Label vl = new Label(value); vl.setStyle("-fx-text-fill:-th-text-primary;-fx-font-size:20px;-fx-font-weight:bold;");
         VBox card = new VBox(6, tl, vl);
         card.setPadding(new Insets(16, 20, 16, 20));
-        card.setStyle("-fx-background-color:-th-bg-primary;-fx-border-color:" + color +
+        card.setStyle("-fx-background-color:-th-bg-card;-fx-border-color:" + color +
                       ";-fx-border-width:0 0 0 4;-fx-background-radius:12;-fx-border-radius:12;" +
-                      "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.3),12,0,0,4);");
+                      "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.20),10,0,0,3);");
         HBox.setHgrow(card, Priority.ALWAYS);
         return card;
     }
@@ -646,7 +655,7 @@ public class AdminReportsView {
             rankLbl.setPrefWidth(22); rankLbl.setMinWidth(22);
 
             Label nameLbl = new Label(label + sub);
-            nameLbl.setStyle("-fx-text-fill:#cbd5e1;-fx-font-size:11px;");
+            nameLbl.setStyle("-fx-text-fill:-th-text-primary;-fx-font-size:11px;");
             nameLbl.setPrefWidth(labelWidth);
             nameLbl.setMinWidth(80);   // минимум для плиток
             nameLbl.setMaxWidth(labelWidth);
@@ -666,7 +675,7 @@ public class AdminReportsView {
             barFill.prefWidthProperty().bind(barTrack.widthProperty().multiply(frac));
 
             Label valLbl = new Label(fmt + " (" + pct + "%)");
-            valLbl.setStyle("-fx-text-fill:#94a3b8;-fx-font-size:10px;-fx-padding:2 0 0 6;");
+            valLbl.setStyle("-fx-text-fill:-th-text-secondary;-fx-font-size:10px;-fx-padding:2 0 0 6;");
             valLbl.setMinWidth(javafx.scene.control.Control.USE_PREF_SIZE);
 
             HBox barRow = new HBox(6, rankLbl, nameLbl, barTrack, valLbl);

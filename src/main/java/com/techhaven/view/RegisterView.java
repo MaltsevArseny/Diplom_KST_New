@@ -42,8 +42,8 @@ public class RegisterView {
     private static final String FIELD_NORMAL = "-fx-background-color: -th-bg-card; -fx-border-color: -th-border; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: -th-text-primary; -fx-padding: 8 12;";
     private static final String FIELD_ERROR  = "-fx-background-color: -th-bg-card; -fx-border-color: -th-danger; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: -th-text-primary; -fx-padding: 8 12; -fx-border-width: 2;";
     private static final String FIELD_OK     = "-fx-background-color: -th-bg-card; -fx-border-color: #22c55e; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: -th-text-primary; -fx-padding: 8 12; -fx-border-width: 2;";
-    private static final String BOX_NORMAL   = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-border; -fx-border-radius: 8; -fx-padding: 0 12 0 0;";
-    private static final String BOX_ERROR    = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-danger; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
+    private static final String BOX_NORMAL = FormStyles.BOX_NORMAL;
+    private static final String BOX_ERROR  = FormStyles.BOX_ERROR;
     private static final String BOX_OK       = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: #22c55e; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
 
     public Parent getView() {
@@ -275,7 +275,7 @@ public class RegisterView {
 
         Button closeBtn = new Button("×");
         closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
+        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle("-fx-background-color: -th-danger; -fx-text-fill: -th-cream; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
         closeBtn.setOnMouseExited(e -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));
         closeBtn.setTooltip(new javafx.scene.control.Tooltip("Закрыть"));
         closeBtn.setOnAction(e -> {

@@ -47,8 +47,8 @@ public class LoginView {
     // Для перетаскивания окна
     private double dragX, dragY;
 
-    private static final String BOX_NORMAL   = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-border; -fx-border-radius: 8; -fx-padding: 0 12 0 0;";
-    private static final String BOX_ERROR    = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-danger; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
+    private static final String BOX_NORMAL = FormStyles.BOX_NORMAL;
+    private static final String BOX_ERROR  = FormStyles.BOX_ERROR;
 
     public Parent getView() {
         // Корень окна — без отступов

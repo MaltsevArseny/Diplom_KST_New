@@ -163,7 +163,7 @@ public class AdminOrdersView {
                 } else {
                     setText(timePart);
                 }
-                setStyle("-fx-text-fill: #d0d0e8; -fx-font-size: 13px;");
+                setStyle("-fx-text-fill: -th-text-primary; -fx-font-size: 13px;");
             }
         });
 
@@ -187,7 +187,7 @@ public class AdminOrdersView {
                 String interval = o.getPlannedDeliveryInterval();
                 String timePart = (interval != null && !interval.isEmpty()) ? interval : "";
                 setText(datePart + (timePart.isEmpty() ? "" : "\n" + timePart));
-                setStyle("-fx-text-fill: #d0d0e8; -fx-font-size: 13px;");
+                setStyle("-fx-text-fill: -th-text-primary; -fx-font-size: 13px;");
             }
         });
 
@@ -365,7 +365,7 @@ public class AdminOrdersView {
         for (OrderItem item : items) {
             Label lbl = new Label("  • " + item.getProductName() +
                 " × " + item.getQuantity() + "  =  " + item.getFormattedSubtotal());
-            lbl.setStyle("-fx-text-fill:#cbd5e1;-fx-font-size:13px;");
+            lbl.setStyle("-fx-text-fill:-th-text-primary;-fx-font-size:13px;");
             content.getChildren().add(lbl);
         }
 
@@ -412,12 +412,12 @@ public class AdminOrdersView {
             String c = statusColor(h.getStatus());
             Label statusLbl = new Label(h.getStatus());
             statusLbl.setStyle(
-                "-fx-background-color:" + c + ";-fx-text-fill:white;" +
+                "-fx-background-color:" + c + ";-fx-text-fill:-th-cream;" +
                 "-fx-font-weight:bold;-fx-padding:1 6;-fx-background-radius:4;-fx-font-size:11px;"
             );
             Label dateLbl = new Label("— " + changedAt +
                 (h.getChangedByName() != null ? " (" + h.getChangedByName() + ")" : ""));
-            dateLbl.setStyle("-fx-text-fill:#94a3b8;-fx-font-size:12px;");
+            dateLbl.setStyle("-fx-text-fill:-th-text-secondary;-fx-font-size:12px;");
             HBox histRow = new HBox(6, new Label("  •"), statusLbl, dateLbl);
             histRow.setAlignment(Pos.CENTER_LEFT);
             content.getChildren().add(histRow);
@@ -519,7 +519,7 @@ public class AdminOrdersView {
         String c = statusColor(status);
         Label badge = new Label(status);
         badge.setStyle(
-            "-fx-background-color:" + c + ";-fx-text-fill:white;" +
+            "-fx-background-color:" + c + ";-fx-text-fill:-th-cream;" +
             "-fx-font-weight:bold;-fx-padding:2 8;-fx-background-radius:6;-fx-font-size:13px;"
         );
         return badge;
