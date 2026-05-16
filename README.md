@@ -13,15 +13,17 @@ DigitalHub — автономное desktop-приложение для прод
 
 | Параметр | Значение |
 |---|---|
-| Версия | 3.3 |
+| Версия | 3.3.0 (2026-05-16) |
 | Платформа | Windows 10/11, Linux, macOS (Java cross-platform) |
 | Java | 21 LTS (OpenJDK / Temurin) |
-| UI-фреймворк | JavaFX 21.0.5 |
-| БД | SQLite 3 (через JDBC), схема в 3НФ |
-| Сборка | Apache Maven 3.8+ |
-| Паттерн | MVVM (Model–View–ViewModel) |
-| Темизация | Dark / Light, runtime-переключение `Alt+T` |
-| Артефакт сборки | `dist/DigitalHub.jar` (FAT JAR) |
+| UI-фреймворк | JavaFX 21.0.5 (controls / fxml / graphics) |
+| БД | SQLite 3 (через JDBC `org.xerial:sqlite-jdbc:3.42.0.0`), схема в 3НФ |
+| Сборка | Apache Maven 3.8+ (maven-shade-plugin → FAT JAR) |
+| Тесты | JUnit 5.10.2, 302 теста в 31 классе |
+| Паттерн | MVVM (Model–View–ViewModel) + слой сервисов |
+| Темизация | Dark / Light, runtime-переключение `Alt+T`, persist в `Preferences` |
+| Артефакт сборки | `dist/DigitalHub.jar` (FAT JAR, mainClass = `com.techhaven.Launcher`) |
+| Поставка | `dist/` содержит JAR + portable JRE 21 (`dist/jre/`) — Java на ПК не обязательна |
 | История изменений | [CHANGELOG.md](docs/CHANGELOG.md) |
 
 ---
@@ -35,17 +37,22 @@ Diplom_KST_New/
 │   ├── Launcher.java             # Загрузчик для FAT JAR (обход classpath-ограничений JavaFX)
 │   ├── model/                    # POJO-модели: User, Product, Order, OrderItem, CartItem, Favorite
 │   ├── config/
-│   │   ├── DatabaseManager.java  # Singleton: инициализация схемы, сидирование, миграции
+│   │   ├── AppConfig.java        # Константы: длительности таймеров, лимиты, иммутабельная конфигурация
+│   │   ├── AppPaths.java         # Резолв путей рядом с JAR (CodeSource-based), dataDir / dbFile / productImagesDir
+│   │   ├── DatabaseManager.java  # Singleton: инициализация схемы из schema.sql, сидирование, миграции
+│   │   ├── EventBus.java         # Pub/sub шина (cart/favorites/orders/products события)
 │   │   ├── SeedProducts.java     # Генератор каталога 500 товаров
-│   │   ├── SessionManager.java   # Singleton: текущий авторизованный пользователь
+│   │   ├── SessionManager.java   # Singleton: текущий авторизованный пользователь, requireAdmin()
 │   │   └── ThemeManager.java     # Singleton: dark/light тема, persist (Preferences), listener-API
 │   ├── security/
 │   │   └── SecurityManager.java  # PBKDF2 хеш/верификация, AES-256-CBC шифрование PII, валидация
 │   ├── repository/               # Слой доступа к данным (JDBC + PreparedStatement)
+│   │   ├── I{User,Product,Order,Cart,Favorite}Repository.java  # Контракты для testability
 │   │   ├── UserRepository.java
-│   │   ├── ProductRepository.java
-│   │   ├── OrderRepository.java
-│   │   └── ...
+│   │   ├── ProductRepository.java   # +findPaged / decrementStock(conn, ...) atomic-list
+│   │   ├── OrderRepository.java     # +overload-методы с Connection (участие в транзакции)
+│   │   ├── CartRepository.java      # +addToCart суммирует quantity при дубле user_id+product_id
+│   │   └── FavoriteRepository.java
 │   ├── service/                  # Бизнес-логика
 │   │   ├── AuthService.java      # Аутентификация, блокировка аккаунта
 │   │   ├── CartService.java
@@ -53,21 +60,31 @@ Diplom_KST_New/
 │   │   ├── OrderService.java     # Транзакционный placeOrder, role-checks на updateStatus/Delivery
 │   │   ├── ProductService.java   # CRUD с role-checks и validate()
 │   │   ├── UserService.java      # Admin-операции (lock/unlock/list) с requireAdmin()
-│   │   └── ProductCache.java     # In-memory кэш категорий (Singleton, thread-safe)
+│   │   ├── ProductCache.java     # In-memory кэш категорий (Singleton, thread-safe)
+│   │   └── UndoService.java      # Отложенное удаление с возможностью отмены (5 сек)
 │   └── view/                     # JavaFX экраны
 │       ├── MainLayout.java       # Навбар + контент-область (пользователь)
 │       ├── AdminLayout.java      # Топбар + сайдбар + контент-область (администратор)
 │       ├── DialogHelper.java     # Утилита: стилизованные диалоги, Tooltip, стили
+│       ├── FormStyles.java       # Общие стили форм (input/label/section)
 │       ├── ThemeToggle.java      # Утилита: кнопка переключения темы (☀/🌙)
 │       ├── HelpView.java         # Встроенная справка (Markdown → JavaFX рендер)
 │       ├── LoginView.java / RegisterView.java
 │       ├── CatalogView.java / CartView.java / FavoritesView.java
 │       ├── CheckoutView.java / OrdersView.java / ProfileView.java
-│       └── Admin*.java           # AdminProductsView, AdminOrdersView, AdminUsersView, AdminReportsView
+│       ├── ProductDetailView.java # Полноэкранная карточка товара (характеристики, действия)
+│       ├── Admin*.java           # AdminProductsView, AdminOrdersView, AdminUsersView, AdminReportsView
+│       └── component/
+│           └── NotificationPanel.java  # Toast-уведомления (success/info/warn/error)
 ├── src/main/resources/
+│   ├── schema.sql                # DDL: таблицы, CHECK-constraints, индексы (3НФ)
+│   ├── seed.sql                  # (резерв; основное сидирование — программное в DatabaseManager)
+│   ├── app.properties            # Базовые ключи конфигурации
+│   ├── logging.properties        # Настройки java.util.logging
+│   ├── images/logo.jpg
 │   └── styles/
 │       ├── dark-theme.css        # Тёмная тема (default)
-│       └── light-theme.css       # Светлая тема
+│       └── light-theme.css       # Светлая тема (sand-палитра)
 ├── dist/
 │   ├── DigitalHub.jar            # FAT JAR (генерируется при сборке)
 │   ├── digitalhub.db             # Единственная БД приложения
@@ -99,7 +116,13 @@ Diplom_KST_New/
 | JavaFX Graphics | `org.openjfx:javafx-graphics` | 21.0.5 | Графический движок |
 | JavaFX FXML | `org.openjfx:javafx-fxml` | 21.0.5 | FXML-поддержка |
 | SQLite JDBC | `org.xerial:sqlite-jdbc` | 3.42.0.0 | Драйвер SQLite |
-| Maven Shade | `org.apache.maven.plugins:maven-shade-plugin` | — | Сборка FAT JAR |
+| JUnit Jupiter | `org.junit.jupiter:junit-jupiter` | 5.10.2 | Юнит-тесты (test scope) |
+| JUnit 4 | `junit:junit` | 4.13.1 | Совместимость с legacy-runner (test scope) |
+| Maven Compiler | `maven-compiler-plugin` | 3.11.0 | `--release=21`, `--add-reads techhaven=ALL-UNNAMED` |
+| Maven Shade | `maven-shade-plugin` | 3.6.0 | Сборка FAT JAR с `mainClass=com.techhaven.Launcher` |
+| Surefire | `maven-surefire-plugin` | 3.2.5 | Тесты в classpath-режиме (`useModulePath=false`) с `-Ddb.path=target/test.db` |
+| JaCoCo | `jacoco-maven-plugin` | 0.8.13 | Покрытие (`mvn verify` → `target/site/jacoco/`), исключение `view/**` |
+| javafx-maven-plugin | `org.openjfx:javafx-maven-plugin` | 0.0.8 | `mvn javafx:run` (опционально, для dev-запуска) |
 
 ---
 
@@ -239,9 +262,10 @@ Maven сам подтягивает нужный classifier-jar (`javafx-graphic
 4. Создание тестовых пользователей (`seedUsersAndOrders()`):
    - 8 покупателей (роль USER)
    - 3 администратора (роль ADMIN)
-5. Генерация 170 тестовых заказов (`seedUsersAndOrders()`), равномерно распределённых с 01.01.2025 по 01.03.2026
+5. Генерация **170 тестовых заказов** (`seedUsersAndOrders()`), равномерно распределённых с 01.01.2025 по 01.03.2026. Распределение по покупателям: user1=5, user2=10, user3=15, user4=20, user5=30, user6=40, user7=50, user8=0 (резервный аккаунт без истории). Каждый заказ получает 1–4 позиции, итоговую сумму, плановую дату/интервал доставки и историю смен статусов.
+6. Гарантированное наличие нескольких товаров с `stock_quantity = 0` (для проверки фильтра «Нет в наличии»).
 
-Все операции идемпотентны — при повторном запуске дубликаты не создаются.
+Все операции идемпотентны: используется `INSERT OR IGNORE` для справочников, товаров и пользователей; для заказов — проверка `SELECT COUNT(*) FROM Orders > 0` перед вставкой. Повторный запуск не создаёт дубликатов.
 
 ### Тестовые учётные записи
 
@@ -266,14 +290,14 @@ Maven сам подтягивает нужный classifier-jar (`javafx-graphic
 | Механизм | Реализация |
 |---|---|
 | Хеширование паролей | PBKDF2WithHmacSHA256, 100 000 итераций, 16-байт salt |
-| Шифрование PII | AES-256-CBC (телефон, адрес доставки) |
+| Шифрование PII | AES-256-CBC: email и телефон пользователя, контактный телефон заказа, адрес доставки |
 | SQL-инъекции | `PreparedStatement` во всех запросах |
 | Блокировка аккаунта | 5 неудачных попыток → блок на 5 минут |
 | Логирование | `java.util.logging` (стандартный JDK Logger) |
 | Транзакции оформления заказа | Единое соединение с `setAutoCommit(false)`; при любом сбое — `rollback` (заказ/позиции/сток/история/корзина согласованы) |
 | Защита склада от race | `UPDATE Products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?` — атомарное условное списание |
 | Целостность данных | CHECK-constraints на `price ≥ 0`, `stock_quantity ≥ 0`, `quantity > 0`, `total_amount ≥ 0`; UNIQUE-индексы `Cart(user_id, product_id)`, `Favorites(user_id, product_id)` |
-| Проверки прав admin | Service-уровень: `SessionManager.requireAdmin()` в `ProductService.create/update/delete`, `OrderService.updateStatus/updatePlannedDelivery`, `UserService.*` (defense-in-depth поверх UI) |
+| Проверки прав admin | Service-уровень: `SessionManager.requireAdmin()` в `ProductService.createProduct/updateProduct/deleteProduct`, `OrderService.updateStatus/updatePlannedDelivery`, `UserService.*` (defense-in-depth поверх UI). `OrderService.updateStatus` дополнительно разрешает USER отменить только собственный незавершённый заказ. |
 | Валидация товаров | `ProductService.validate()` — непустое имя, неотрицательные цена/остаток, существование категории в справочнике, отсутствие дубля имени |
 
 ---
@@ -374,69 +398,93 @@ Default при первом запуске — `DARK` (поведение сов
 ### Запуск тестов
 
 ```
-mvn test -B          # только тесты
-mvn verify           # тесты + JaCoCo-отчёт покрытия
+mvn test             # только тесты (302 теста, ~10 сек)
+mvn verify           # тесты + JaCoCo-отчёт (target/site/jacoco/index.html)
 ```
 
-### Результаты
+> **Безопасность:** surefire передаёт `-Ddb.path=${project.build.directory}/test.db` через `systemPropertyVariables`, поэтому интеграционные тесты пишут в **изолированную** `target/test.db`, а не в production `digitalhub.db`. Это исключает порчу пользовательских данных при `mvn test`.
+
+### Результаты последнего прогона
 
 | Метрика | Значение |
 |---|---|
 | Фреймворк | JUnit 5 (junit-jupiter 5.10.2) |
-| Покрытие | JaCoCo 0.8.13 (`mvn verify` → `target/site/jacoco/index.html`) |
-| Тестовых классов | 31 |
-| Тестов всего | 299 |
+| Покрытие | JaCoCo 0.8.13 (`view/**` исключён из отчёта — JavaFX runtime в CI не инициализируется) |
+| Тестовых классов | **31** |
+| Тестов всего | **302** |
+| Failures / Errors / Skipped | **0 / 0 / 0** |
 | Результат | BUILD SUCCESS |
+| Время | ~10 секунд |
 
-### Покрытие по пакетам (JaCoCo)
+### Тестовые классы (31 шт., 302 теста)
 
-| Пакет | Инструкции | Ветки | Методы |
-|---|---|---|---|
-| `com.techhaven.model` | **98 %** | 95 % | 172 |
-| `com.techhaven.config` | **94 %** | 56 % | 24 |
-| `com.techhaven.security` | **87 %** | 92 % | 12 |
-| `com.techhaven.repository` | **57 %** | 56 % | 61 |
-| `com.techhaven.service` | **46 %** | 37 % | 53 |
-| **Итого** | **84 %** | **55 %** | **335** |
-
-> View-классы (JavaFX UI) исключены из отчёта — unit-тесты не могут инициализировать JavaFX runtime в CI.
-
-### Тестовые классы
+#### `com.techhaven.model` — 9 классов / 54 теста
 
 | Класс | Тестов | Что проверяется |
 |---|---|---|
-| `Product` | 5 | Конструкторы, getFormattedPrice, getStockStatus |
-| `User` | 6 | Конструкторы, isAdmin, блокировка |
-| `CartItem` | 8 | Subtotal, форматирование, transient-поля |
+| `Product` | 8 | Конструкторы, getFormattedPrice, getStockStatus |
+| `User` | 6 | Конструкторы, isAdmin, поля блокировки |
+| `CartItem` | 12 | Subtotal, форматирование, transient-поля |
 | `Order` | 3 | Все поля, getFormattedTotal |
 | `OrderItem` | 6 | Subtotal, форматирование |
 | `Favorite` | 5 | Конструкторы, transient-поля |
 | `OrderStatusHistory` | 3 | Конструкторы, все поля |
 | `Role` | 4 | enum values, fromString, fallback |
 | `OrderStatus` | 7 | 8 статусов, fromString, нормализация ё/е, isTerminal |
-| `SecurityManager` | 23 | Singleton, hash/verify, AES encrypt/decrypt, validate*, isValid* |
-| `AppConfig` | 4 | Значения по умолчанию auth/security/UI |
+
+#### `com.techhaven.config` — 6 классов / 54 теста
+
+| Класс | Тестов | Что проверяется |
+|---|---|---|
+| `AppConfig` | 4 | Значения по умолчанию auth / security / UI |
+| `AppPaths` | 10 | Override через `-Dapp.data.dir`, создание директорий, поиск документов в data-dir / parent / CWD, default `dataDir`, кэширование, абсолютный путь к `dbFile` |
+| `DatabaseManager` | 11 | Singleton, connection, tables exist, seed data, FK на справочники |
 | `EventBus` | 7 | subscribe/publish, unsubscribe, clearAll, error isolation |
-| `SessionManager` | 8 | Singleton, login/logout, isAdmin, getCurrentUserId |
-| `DatabaseManager` | 11 | Singleton, connection, tables exist, seed data, 3НФ categories |
-| `UserRepository` | 10 | findByEmail, findById, emailExists, findAll*, emailExistsForOther |
+| `SessionManager` | 8 | Singleton, login/logout, isAdmin, `requireAdmin()`, getCurrentUserId |
+| `ThemeManager` | 14 | Singleton, default DARK, set/get, toggle, persist (Preferences), listener add/remove/notify, `Theme.opposite`, наличие CSS-ресурсов в classpath |
+
+#### `com.techhaven.security` — 1 класс / 23 теста
+
+| Класс | Тестов | Что проверяется |
+|---|---|---|
+| `SecurityManager` | 23 | Singleton, PBKDF2 hash/verify, AES-256 encrypt/decrypt, `validate*`, `isValid*`, обработка null/невалидных входов |
+
+#### `com.techhaven.repository` — 5 классов / 51 тест
+
+| Класс | Тестов | Что проверяется |
+|---|---|---|
+| `UserRepository` | 13 | findByEmail, findById, emailExists, findAll*, emailExistsForOther, update |
 | `ProductRepository` | 10 | findAll, findPaged, getTotalCount, findById, categories, search |
 | `OrderRepository` | 9 | findAll, findById, findByUserId, findOrderItems, statusHistory |
-| `CartRepository` | 11 | addToCart, getCartItems, removeFromCart, updateQuantity, clearCart |
+| `CartRepository` | 11 | addToCart (суммирование quantity при дубле), getCartItems, removeFromCart, updateQuantity, clearCart |
 | `FavoriteRepository` | 8 | addFavorite, getFavorites, removeFavorite, isFavorite |
-| `ProductService` | 31 | getAllProducts, search, pagination, categories, validate (7 кейсов: пустое имя, отриц. цена, отриц. сток, пустая/несуществующая категория, дубль имени, same-name on edit) |
-| `ProductCache` | 12 | cache hit/miss, invalidate, счётчики, конкурентный доступ, неизменяемость |
+
+#### `com.techhaven.service` — 7 классов / 107 тестов
+
+| Класс | Тестов | Что проверяется |
+|---|---|---|
 | `AuthService` | 11 | Валидация пароля, hash/verify, null/empty |
-| `OrderService` | 33 | placeOrder валидация, success path, чтение заказов, updateStatus, защита от ухода стока в минус (атомарный decrementStock + транзакция), USER не может менять статус кроме отмены своего заказа |
-| `CartService` | 6 | getCartItems, addToCart, removeFromCart, getTotal, isInCart |
+| `CartService` | 8 | getCartItems, addToCart, removeFromCart, getTotal, isInCart |
 | `FavoriteService` | 4 | getFavorites, getFavoriteCount, isFavorite, addAndRemove |
+| `OrderService` | 33 | placeOrder валидация, success path, чтение заказов, updateStatus, защита от ухода стока в минус (атомарный `decrementStock` + транзакция), `placeOrderRollsBackOnFailure` (orders+1, stock-1, history++, cart=0), USER не может менять статус кроме отмены своего заказа |
+| `ProductCache` | 12 | cache hit/miss, invalidate, счётчики, конкурентный доступ, неизменяемость |
+| `ProductService` | 31 | getAllProducts, search, pagination, categories, `validate()` (7 кейсов: пустое имя, отриц. цена, отриц. сток, пустая / несуществующая категория, дубль имени, same-name on edit), role-checks |
 | `UndoService` | 8 | Singleton, isPendingDeletion, forceExecute, undo |
+
+#### `com.techhaven.view` — 3 класса / 13 тестов
+
+| Класс | Тестов | Что проверяется |
+|---|---|---|
 | `ButtonTooltip` | 1 | CSS-стили для Tooltip |
-| `ThemeManager` | 14 | Singleton, default DARK, set/get, toggle, persist (Preferences), listener add/remove/notify, CSS-resource existence |
+| `HelpViewAnchorTest` | 6 | Корректное построение anchor'ов TOC, scrollToAnchor, фильтрация неподдерживаемых якорей |
+| `ThemeContractTest` | 6 | Совпадение набора `-th-*` переменных между `dark-theme.css` и `light-theme.css`, отсутствие невостребованных переменных |
 
 ### Запуск через surefire-plugin
 
-Конфигурация в `pom.xml` включает `--add-reads`/`--add-opens` для совместимости с JPMS (`module-info.java`).
+Конфигурация `pom.xml`:
+- `useModulePath=false` — тесты идут в classpath-режиме, не активируя JPMS module-info (тесты не зависят от JavaFX runtime).
+- `systemPropertyVariables.db.path = ${project.build.directory}/test.db` — изоляция БД.
+- `argLine` пробрасывает `@{argLine}` (для агентов вроде JaCoCo) + `-Djava.util.logging.config.file=…`.
 
 ---
 
@@ -450,7 +498,9 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 | БД повреждена / пустые данные | Файл БД повреждён | Удалите `dist/digitalhub.db` — пересоздастся автоматически |
 | Изменения не применяются | Запущена другая копия DigitalHub.jar | Закройте все копии, пересоберите (`run.bat`) |
 | Окно не запускается | Отсутствуют native-библиотеки JavaFX | Убедитесь, что `maven-shade-plugin` включён в `pom.xml` |
-| Справка не открывается | Файл `UserManual.md` / `AdminManual.md` не найден | Файлы должны находиться в корне проекта или на уровень выше `dist/` |
+| Справка не открывается | Файл `UserManual.md` / `AdminManual.md` не найден | `AppPaths.findDocumentFile` ищет в dataDir → parent dataDir → CWD → classpath `/help/`. Положите файл в одну из этих локаций или пересоберите JAR (классы попадут в classpath) |
+| `mvn test` падает с «Module javafx.graphics not found» | Профиль OS не активировался, classifier-jar пуст | Запустить с `-P windows`/`-P macos`/`-P linux` или `-Djavafx.platform=win/mac/linux` |
+| Тесты пишут в production БД | Старая версия pom.xml без `systemPropertyVariables.db.path` | Обновить `pom.xml` (3.2.2+); проверить, что surefire-блок содержит `<db.path>${project.build.directory}/test.db</db.path>` |
 
 ---
 
@@ -468,9 +518,10 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 
 ## 11. Расширение и сопровождение
 
-- **Новый экран**: создать `*View.java` в `com.techhaven.view`, добавить вызов из `MainLayout` или `AdminLayout`
-- **Новая таблица БД**: добавить `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE IF NOT EXISTS` в `DatabaseManager.initializeDatabase()`
-- **Новая категория товаров**: добавить запись в `seedCategories()` в `DatabaseManager` и обновить `categoryColors()` в `CatalogView.java` / `CartView.java` / `FavoritesView.java`
-- **Обновление справки**: отредактировать `UserManual.md` или `AdminManual.md` — изменения применяются без пересборки
-- **Смена пути к БД**: передать `-Ddb.path=<путь>` при запуске `java -jar`
-- **Новая цветовая тема**: см. раздел [7.bis. Темизация](#7bis-темизация-dark--light) — `src/main/resources/styles/<name>-theme.css` + новое значение `ThemeManager.Theme`
+- **Новый экран**: создать `*View.java` в `com.techhaven.view`, добавить вызов из `MainLayout` или `AdminLayout`.
+- **Новая таблица БД**: добавить `CREATE TABLE IF NOT EXISTS …` в `src/main/resources/schema.sql` (DDL грузится `DatabaseManager.loadResource("/schema.sql")`).
+- **Новая категория товаров**: добавить запись в `seedCategories()` (`DatabaseManager.java:115`) и расширить цвета в `categoryColors()` в `CatalogView.java` / `CartView.java` / `FavoritesView.java`.
+- **Обновление справки**: отредактировать `UserManual.md` или `AdminManual.md` в корне проекта — изменения применяются без пересборки (HelpView ищет файлы через `AppPaths.findDocumentFile()`).
+- **Смена пути к БД**: `-Ddb.path=<абсолютный путь>` или `-Dapp.data.dir=<папка>` при запуске `java -jar`.
+- **Новая цветовая тема**: см. [docs/THEME_PALETTE.md](docs/THEME_PALETTE.md) — `src/main/resources/styles/<name>-theme.css` + новое значение `ThemeManager.Theme`.
+- **Новые тесты**: класс в `src/test/java/com/techhaven/<package>/`, наследование от JUnit 5 (`@Test`). Интеграционные тесты используют `target/test.db` автоматически (через surefire).
