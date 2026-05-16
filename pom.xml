@@ -17,6 +17,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <javafx.version>21.0.5</javafx.version>
+        <!-- Платформенный classifier для JavaFX native jar'ов: win / mac / linux.
+             Можно переопределить через -Djavafx.platform=mac при кросс-сборке. -->
+        <javafx.platform>win</javafx.platform>
         <main.class>com.techhaven.MainApp</main.class>
     </properties>
 
@@ -134,15 +137,13 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <!-- Тесты выполняются в classpath-режиме: они проверяют только
+                         POJO/service/repository слои, не JavaFX runtime. Это обходит
+                         проблему «Module javafx.graphics not found» при отсутствии
+                         os-maven-plugin extension. -->
+                    <useModulePath>false</useModulePath>
                     <argLine>
                         @{argLine}
-                        --add-reads techhaven=ALL-UNNAMED
-                        --add-modules javafx.graphics
-                        --add-opens techhaven/com.techhaven.model=ALL-UNNAMED
-                        --add-opens techhaven/com.techhaven.security=ALL-UNNAMED
-                        --add-opens techhaven/com.techhaven.service=ALL-UNNAMED
-                        --add-opens techhaven/com.techhaven.config=ALL-UNNAMED
-                        --add-opens techhaven/com.techhaven.repository=ALL-UNNAMED
                         -Djava.util.logging.config.file=${project.basedir}/src/main/resources/logging.properties
                     </argLine>
                 </configuration>

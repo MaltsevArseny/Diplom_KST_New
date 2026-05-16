@@ -125,12 +125,12 @@ public class CatalogView {
         resetBtn.setTooltip(new javafx.scene.control.Tooltip("Сбросить все фильтры"));
 
         inStockOnly = new CheckBox("Только в наличии");
-        inStockOnly.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 13px;");
+        inStockOnly.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 13px;");
 
         filters.getChildren().addAll(searchField, categoryCombo,
             new Label("Цена:"), minPriceField, new Label("—"), maxPriceField, inStockOnly, resetBtn);
         for (var node : filters.getChildren()) {
-            if (node instanceof Label label) label.setStyle("-fx-text-fill: #a0a0b8;");
+            if (node instanceof Label label) label.setStyle("-fx-text-fill: -th-text-secondary;");
         }
 
         // Дебаунс-поиск: 0.5 секунды после последнего символа в полях поиска/цены
@@ -443,7 +443,7 @@ public class CatalogView {
         String emoji        = cat[2];
 
         card.setStyle(
-            "-fx-background-color: #2a2a3e;" +
+            "-fx-background-color: -th-bg-card;" +
             "-fx-border-color: " + accentColor + ";" +
             "-fx-border-width: 2;" +
             "-fx-border-radius: 16;" +
@@ -463,7 +463,7 @@ public class CatalogView {
 
         // Название
         Label nameLabel = new Label(product.getName());
-        nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #f0f0f0;");
+        nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -th-text-primary;");
         nameLabel.setWrapText(true);
         nameLabel.setMinHeight(40);
         nameLabel.setAlignment(Pos.TOP_LEFT);
@@ -472,11 +472,11 @@ public class CatalogView {
         Label descLabel = new Label(product.getDescription() != null ? product.getDescription() : "");
         descLabel.setWrapText(true);
         descLabel.setMaxHeight(40);
-        descLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #a0a0b8;");
+        descLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: -th-text-secondary;");
 
         // Характеристики
         Label specLabel = new Label(product.getSpecifications() != null ? product.getSpecifications() : "");
-        specLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #6b7280;");
+        specLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: -th-text-muted;");
 
         // Цена
         Label priceLabel = new Label(product.getFormattedPrice());
@@ -501,7 +501,7 @@ public class CatalogView {
         Button addToCartBtn = new Button(alreadyInCart ? "✓ В корзине" : "В корзину 🛒");
         addToCartBtn.setStyle(
             (alreadyInCart
-                ? "-fx-background-color: #10b981;"
+                ? "-fx-background-color: -th-success;"
                 : "-fx-background-color: " + accentColor + ";") +
             " -fx-text-fill: white;" +
             "-fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 6 12; -fx-background-radius: 8; -fx-cursor: hand;"
@@ -523,7 +523,7 @@ public class CatalogView {
                 } else {
                     addToCartBtn.setText("✓ В корзине");
                     addToCartBtn.setStyle(
-                        "-fx-background-color: #10b981; -fx-text-fill: white;" +
+                        "-fx-background-color: -th-success; -fx-text-fill: white;" +
                         "-fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 6 12; -fx-background-radius: 8;"
                     );
                     mainLayout.updateCartBadge();
@@ -537,7 +537,7 @@ public class CatalogView {
         favBtn.setTextOverrun(javafx.scene.control.OverrunStyle.CLIP); // Убираем многоточие
         favBtn.setTooltip(new javafx.scene.control.Tooltip(isFav ? "Убрать из избранного" : "Добавить в избранное"));
         favBtn.setStyle(
-            (isFav ? "-fx-text-fill: #ef4444;" : "-fx-text-fill: #6b7280;") +
+            (isFav ? "-fx-text-fill: -th-danger;" : "-fx-text-fill: -th-text-muted;") +
             "-fx-background-color: transparent; -fx-font-size: 18px; -fx-padding: 0; -fx-cursor: hand;"
         );
         favBtn.setOnAction(e -> {
@@ -546,7 +546,7 @@ public class CatalogView {
             boolean nowFav = favoriteService.isFavorite(product.getId());
             favBtn.setText(nowFav ? "❤" : "♡");
             favBtn.setStyle(
-                (nowFav ? "-fx-text-fill: #ef4444;" : "-fx-text-fill: #6b7280;") +
+                (nowFav ? "-fx-text-fill: -th-danger;" : "-fx-text-fill: -th-text-muted;") +
                 "-fx-background-color: transparent; -fx-font-size: 18px; -fx-padding: 0; -fx-cursor: hand;"
             );
             mainLayout.updateFavoriteBadge();
@@ -575,7 +575,7 @@ public class CatalogView {
             "-fx-effect: dropshadow(gaussian, " + accentColor + ", 12, 0.25, 0, 0);"
         ));
         card.setOnMouseExited(e -> card.setStyle(
-            "-fx-background-color: #2a2a3e;" +
+            "-fx-background-color: -th-bg-card;" +
             "-fx-border-color: " + accentColor + ";" +
             "-fx-border-width: 2;" +
             "-fx-border-radius: 16;" +

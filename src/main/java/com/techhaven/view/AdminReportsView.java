@@ -71,9 +71,9 @@ public class AdminReportsView {
         catTopBox  = new VBox(20);
 
         // Стиль обеих кнопок — единый
-        String btnStyle     = "-fx-background-color:#252538;-fx-border-color:#3a3a50;-fx-border-width:1;" +
+        String btnStyle     = "-fx-background-color:-th-bg-secondary;-fx-border-color:-th-border;-fx-border-width:1;" +
                               "-fx-border-radius:8;-fx-background-radius:8;-fx-cursor:hand;-fx-padding:6 18;";
-        String btnHoverStyle = "-fx-background-color:#2d2d48;-fx-border-color:#6d28d9;-fx-border-width:1;" +
+        String btnHoverStyle = "-fx-background-color:#2d2d48;-fx-border-color:-th-accent-hover;-fx-border-width:1;" +
                                "-fx-border-radius:8;-fx-background-radius:8;-fx-cursor:hand;-fx-padding:6 18;";
 
         // Кнопка Печать — стилизованная иконка принтера
@@ -89,7 +89,7 @@ public class AdminReportsView {
         pIcon.getChildren().addAll(pBody, pPaper);
         pIcon.setMinHeight(30);
         Label printLabel = new Label("Печать");
-        printLabel.setStyle("-fx-text-fill:#a0a0b8;-fx-font-size:9px;-fx-font-weight:bold;");
+        printLabel.setStyle("-fx-text-fill:-th-text-secondary;-fx-font-size:9px;-fx-font-weight:bold;");
         VBox printContent = new VBox(2, pIcon, printLabel);
         printContent.setAlignment(Pos.CENTER);
         Button printBtn = new Button();
@@ -150,8 +150,8 @@ public class AdminReportsView {
 
     // ─── Фильтр дат ────────────────────────────────────────────────────────
     private HBox buildFilterBar() {
-        Label fl = new Label("С:");  fl.setStyle("-fx-text-fill: #a0a0b8;");
-        Label tl = new Label("По:"); tl.setStyle("-fx-text-fill: #a0a0b8;");
+        Label fl = new Label("С:");  fl.setStyle("-fx-text-fill: -th-text-secondary;");
+        Label tl = new Label("По:"); tl.setStyle("-fx-text-fill: -th-text-secondary;");
 
         fromPicker = new DatePicker();
         fromPicker.setPromptText("Начало");
@@ -178,7 +178,7 @@ public class AdminReportsView {
         HBox bar = new HBox(8, fl, fromPicker, tl, toPicker, apply, reset, d7, d30, d90);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.setPadding(new Insets(10, 14, 10, 14));
-        bar.setStyle("-fx-background-color:#252538;-fx-background-radius:10;-fx-border-color:#3a3a50;-fx-border-radius:10;");
+        bar.setStyle("-fx-background-color:-th-bg-secondary;-fx-background-radius:10;-fx-border-color:-th-border;-fx-border-radius:10;");
         return bar;
     }
 
@@ -562,7 +562,7 @@ public class AdminReportsView {
     /** Обёртка секции для мозаики — карточка с заголовком */
     private VBox wrapSection(String title, VBox chart) {
         Label hdr = new Label(title);
-        hdr.setStyle("-fx-text-fill:#a78bfa;-fx-font-size:13px;-fx-font-weight:bold;-fx-padding:0 0 6 0;");
+        hdr.setStyle("-fx-text-fill:-th-accent-light;-fx-font-size:13px;-fx-font-weight:bold;-fx-padding:0 0 6 0;");
         VBox wrapper = new VBox(8, hdr, chart);
         wrapper.setPadding(new Insets(14, 16, 14, 16));
         wrapper.setStyle(
@@ -577,12 +577,12 @@ public class AdminReportsView {
 
     /** \u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 \u0441 Tooltip \u043d\u0430 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0438 \u043f\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044f */
     private VBox cardTip(String title, String value, String color, String tip) {
-        Label tl = new Label(title); tl.setStyle("-fx-text-fill:#a0a0b8;-fx-font-size:12px;-fx-cursor:hand;");
+        Label tl = new Label(title); tl.setStyle("-fx-text-fill:-th-text-secondary;-fx-font-size:12px;-fx-cursor:hand;");
         tl.setTooltip(new javafx.scene.control.Tooltip(tip));
         Label vl = new Label(value); vl.setStyle("-fx-text-fill:white;-fx-font-size:20px;-fx-font-weight:bold;");
         VBox card = new VBox(6, tl, vl);
         card.setPadding(new Insets(16, 20, 16, 20));
-        card.setStyle("-fx-background-color:#1e1e2e;-fx-border-color:" + color +
+        card.setStyle("-fx-background-color:-th-bg-primary;-fx-border-color:" + color +
                       ";-fx-border-width:0 0 0 4;-fx-background-radius:12;-fx-border-radius:12;" +
                       "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.3),12,0,0,4);");
         HBox.setHgrow(card, Priority.ALWAYS);
@@ -591,7 +591,7 @@ public class AdminReportsView {
 
     private Label section(String text) {
         Label l = new Label(text);
-        l.setStyle("-fx-font-size:15px;-fx-font-weight:bold;-fx-text-fill:#e2e8f0;");
+        l.setStyle("-fx-font-size:15px;-fx-font-weight:bold;-fx-text-fill:-th-text-primary;");
         l.setPadding(new Insets(6, 0, 2, 0));
         return l;
     }
@@ -623,7 +623,7 @@ public class AdminReportsView {
         box.setPadding(new Insets(6, 4, 6, 4));
         if (sorted.isEmpty()) {
             Label empty = new Label("Нет данных за выбранный период");
-            empty.setStyle("-fx-text-fill:#6b7280;-fx-font-size:13px;");
+            empty.setStyle("-fx-text-fill:-th-text-muted;-fx-font-size:13px;");
             box.getChildren().add(empty);
             return box;
         }
@@ -642,7 +642,7 @@ public class AdminReportsView {
             int    pct   = (int) Math.round(val / total * 100);
 
             Label rankLbl = new Label(String.valueOf(++i) + ".");
-            rankLbl.setStyle("-fx-text-fill:#6b7280;-fx-font-size:10px;");
+            rankLbl.setStyle("-fx-text-fill:-th-text-muted;-fx-font-size:10px;");
             rankLbl.setPrefWidth(22); rankLbl.setMinWidth(22);
 
             Label nameLbl = new Label(label + sub);

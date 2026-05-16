@@ -53,33 +53,7 @@ public final class DialogHelper {
      */
     public static Button createCloseButton(Stage stage) {
         Button btn = new Button("×");
-        btn.setStyle(
-            "-fx-background-color: rgba(58,58,80,0.85);" +
-            "-fx-text-fill: #a0a0b8;" +
-            "-fx-font-size: 18px;" +
-            "-fx-background-radius: 50%;" +
-            "-fx-min-width: 28px; -fx-min-height: 28px;" +
-            "-fx-max-width: 28px; -fx-max-height: 28px;" +
-            "-fx-cursor: hand; -fx-padding: 0;"
-        );
-        btn.setOnMouseEntered(e -> btn.setStyle(
-            "-fx-background-color: #ef4444;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 18px;" +
-            "-fx-background-radius: 50%;" +
-            "-fx-min-width: 28px; -fx-min-height: 28px;" +
-            "-fx-max-width: 28px; -fx-max-height: 28px;" +
-            "-fx-cursor: hand; -fx-padding: 0;"
-        ));
-        btn.setOnMouseExited(e -> btn.setStyle(
-            "-fx-background-color: rgba(58,58,80,0.85);" +
-            "-fx-text-fill: #a0a0b8;" +
-            "-fx-font-size: 18px;" +
-            "-fx-background-radius: 50%;" +
-            "-fx-min-width: 28px; -fx-min-height: 28px;" +
-            "-fx-max-width: 28px; -fx-max-height: 28px;" +
-            "-fx-cursor: hand; -fx-padding: 0;"
-        ));
+        btn.getStyleClass().add("dialog-close-button");
         btn.setOnAction(e -> stage.close());
         btn.setTooltip(new javafx.scene.control.Tooltip("Закрыть"));
         return btn;
@@ -120,12 +94,12 @@ public final class DialogHelper {
     // ─── Стиль карточки ─────────────────────────────────────────────────────
 
     public static String cardStyle() {
-        return "-fx-background-color: #1e1e2e;" +
+        return "-fx-background-color: -th-bg-primary;" +
                "-fx-background-radius: 16;" +
-               "-fx-border-color: #3a3a50;" +
+               "-fx-border-color: -th-border;" +
                "-fx-border-radius: 16;" +
                "-fx-border-width: 1;" +
-               "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 28, 0, 0, 10);";
+               "-fx-effect: dropshadow(gaussian, -th-shadow, 28, 0, 0, 10);";
     }
 
     // ─── Стилизованные уведомления ───────────────────────────────────────────
@@ -149,11 +123,11 @@ public final class DialogHelper {
         iconLbl.setStyle("-fx-font-size:34px;");
 
         Label titleLbl = new Label(title);
-        titleLbl.setStyle("-fx-font-size:15px;-fx-font-weight:bold;-fx-text-fill:#e2e8f0;");
+        titleLbl.setStyle("-fx-font-size:15px;-fx-font-weight:bold;-fx-text-fill:-th-text-primary;");
         titleLbl.setWrapText(true);
 
         Label msgLbl = new Label(message);
-        msgLbl.setStyle("-fx-font-size:13px;-fx-text-fill:#a0a0b8;");
+        msgLbl.setStyle("-fx-font-size:13px;-fx-text-fill:-th-text-secondary;");
         msgLbl.setWrapText(true);
         msgLbl.setMaxWidth(300);
 
@@ -230,8 +204,7 @@ public final class DialogHelper {
         Scene scene = new Scene(wrapper);
         scene.setFill(Color.TRANSPARENT);
         try {
-            scene.getStylesheets().add(
-                DialogHelper.class.getResource("/styles/dark-theme.css").toExternalForm());
+            ThemeToggle.applyTo(scene);
         } catch (Exception ignored) {}
         return scene;
     }

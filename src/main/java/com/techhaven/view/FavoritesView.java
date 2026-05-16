@@ -98,7 +98,7 @@ public class FavoritesView {
                 );
 
                 Label name = new Label(fav.getProductName());
-                name.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #f0f0f0;");
+                name.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -th-text-primary;");
                 name.setWrapText(true);
 
                 Label desc = new Label(fav.getDescription() != null ? fav.getDescription() : "");
@@ -148,7 +148,7 @@ public class FavoritesView {
                     card.getChildren().clear();
                     card.setAlignment(Pos.CENTER);
                     Label undoMsg = new Label("Удалено");
-                    undoMsg.setStyle("-fx-text-fill: #a0a0b8; -fx-font-style: italic;");
+                    undoMsg.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-style: italic;");
                     Button undoBtn = new Button("Отмена (5с) ↩");
                     undoBtn.getStyleClass().addAll("button", "btn-small");
                     undoBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");

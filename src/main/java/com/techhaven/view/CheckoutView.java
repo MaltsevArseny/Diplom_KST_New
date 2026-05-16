@@ -42,8 +42,8 @@ public class CheckoutView {
     private final CartService cartService = new CartService();
     private final OrderService orderService = new OrderService();
 
-    private static final String FIELD_NORMAL = "-fx-border-color: #3f3f5a; -fx-border-radius: 8; -fx-background-radius: 8;";
-    private static final String FIELD_ERROR  = "-fx-border-color: #ef4444; -fx-border-radius: 8; -fx-background-radius: 8; -fx-border-width: 2;";
+    private static final String FIELD_NORMAL = "-fx-border-color: -th-border; -fx-border-radius: 8; -fx-background-radius: 8;";
+    private static final String FIELD_ERROR  = "-fx-border-color: -th-danger; -fx-border-radius: 8; -fx-background-radius: 8; -fx-border-width: 2;";
 
     public CheckoutView(MainLayout mainLayout) {
         this.mainLayout = mainLayout;
@@ -106,18 +106,18 @@ public class CheckoutView {
 
                 Button itemName = new Button(item.getProductName());
                 itemName.getStyleClass().add("hyperlink");
-                itemName.setStyle("-fx-padding: 0; -fx-cursor: hand; -fx-text-fill: #a78bfa; -fx-underline: true;");
+                itemName.setStyle("-fx-padding: 0; -fx-cursor: hand; -fx-text-fill: -th-accent-light; -fx-underline: true;");
                 itemName.setTooltip(new javafx.scene.control.Tooltip("Открыть карточку товара"));
                 itemName.setOnAction(e -> mainLayout.showProductDetail(item.getProductId()));
 
                 Label qty = new Label(" × " + item.getQuantity());
-                qty.setStyle("-fx-text-fill: #6b6b80;");
+                qty.setStyle("-fx-text-fill: -th-text-muted;");
 
                 Region spacer = new Region();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
 
                 Label itemTotal = new Label(item.getFormattedSubtotal());
-                itemTotal.setStyle("-fx-text-fill: #f0f0f0;");
+                itemTotal.setStyle("-fx-text-fill: -th-text-primary;");
 
                 row.getChildren().addAll(itemName, qty, spacer, itemTotal);
                 itemList.getChildren().add(row);
@@ -129,7 +129,7 @@ public class CheckoutView {
         Separator sep = new Separator();
         HBox totalRow = new HBox();
         Label totalTitle = new Label("Итого к оплате (постоплата):");
-        totalTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #f0f0f0; -fx-font-size: 16px;");
+        totalTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: -th-text-primary; -fx-font-size: 16px;");
         Region spacer2 = new Region();
         HBox.setHgrow(spacer2, Priority.ALWAYS);
         Label totalValue = new Label(String.format("%,.0f ₽", total));
@@ -279,16 +279,16 @@ public class CheckoutView {
         commentArea.setPrefRowCount(2);
         commentArea.setWrapText(true);
         commentArea.getStyleClass().add("text-area");
-        commentArea.setStyle("-fx-control-inner-background: #2a2a3e; -fx-text-fill: white; -fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #3f3f5a;");
+        commentArea.setStyle("-fx-control-inner-background: -th-bg-card; -fx-text-fill: white; -fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: -th-border;");
 
         Label paymentNote = new Label("💳 Оплата при получении (постоплата)");
-        paymentNote.setStyle("-fx-text-fill: #10b981; -fx-font-size: 12px; -fx-padding: 4 0 0 0;");
+        paymentNote.setStyle("-fx-text-fill: -th-success; -fx-font-size: 12px; -fx-padding: 4 0 0 0;");
 
         deliveryCard.getChildren().addAll(deliveryTitle, grid, commentLabel, commentArea, paymentNote);
 
         // ====== Общая ошибка ======
         Label errorLabel = new Label();
-        errorLabel.setStyle("-fx-text-fill: #ef4444; -fx-background-color: rgba(239,68,68,0.1); -fx-padding: 8 16; -fx-background-radius: 8;");
+        errorLabel.setStyle("-fx-text-fill: -th-danger; -fx-background-color: rgba(239,68,68,0.1); -fx-padding: 8 16; -fx-background-radius: 8;");
         errorLabel.setVisible(false);
         errorLabel.setManaged(false);
 
@@ -297,7 +297,7 @@ public class CheckoutView {
         confirmBtn.getStyleClass().add("btn-primary");
         confirmBtn.setPrefHeight(50);
         confirmBtn.setPrefWidth(300);
-        confirmBtn.setStyle("-fx-font-size: 16px; -fx-background-color: #7c3aed; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;");
+        confirmBtn.setStyle("-fx-font-size: 16px; -fx-background-color: -th-accent; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;");
         confirmBtn.setTooltip(new javafx.scene.control.Tooltip("Подтвердить и оформить заказ"));
         confirmBtn.setOnAction(e -> {
             // Сброс ошибок
@@ -369,13 +369,13 @@ public class CheckoutView {
 
         ScrollPane scroll = new ScrollPane(root);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #1e1e2e; -fx-background: #1e1e2e;");
+        scroll.setStyle("-fx-background-color: -th-bg-primary; -fx-background: -th-bg-primary;");
         return scroll;
     }
 
     private Label createErrorHint() {
         Label label = new Label();
-        label.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 11px; -fx-padding: -4 0 0 4;");
+        label.setStyle("-fx-text-fill: -th-danger; -fx-font-size: 11px; -fx-padding: -4 0 0 4;");
         label.setWrapText(true);
         label.setVisible(false);
         label.setManaged(false);
@@ -412,10 +412,10 @@ public class CheckoutView {
         title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white;");
 
         Label subtitle = new Label("Ваш заказ успешно принят в работу");
-        subtitle.setStyle("-fx-text-fill: #10b981; -fx-font-size: 16px; -fx-font-weight: bold;");
+        subtitle.setStyle("-fx-text-fill: -th-success; -fx-font-size: 16px; -fx-font-weight: bold;");
 
         Label details = new Label("Оплата будет произведена при получении.\nМы уже начали готовить товары к отправке.");
-        details.setStyle("-fx-text-fill: #a0a0b8; -fx-text-alignment: center; -fx-line-spacing: 5;");
+        details.setStyle("-fx-text-fill: -th-text-secondary; -fx-text-alignment: center; -fx-line-spacing: 5;");
         details.setWrapText(true);
         
         textContent.getChildren().addAll(title, subtitle, details);

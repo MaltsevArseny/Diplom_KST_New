@@ -64,13 +64,13 @@ public class HelpView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(16, 20, 16, 24));
         header.setStyle(
-            "-fx-background-color: #252538;" +
-            "-fx-border-color: transparent transparent #3a3a50 transparent;" +
+            "-fx-background-color: -th-bg-secondary;" +
+            "-fx-border-color: transparent transparent -th-border transparent;" +
             "-fx-border-width: 0 0 1 0;"
         );
 
         Label titleLabel = new Label("❓  " + title);
-        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #a78bfa;");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -th-accent-light;");
 
         Region hSpacer = new Region();
         HBox.setHgrow(hSpacer, Priority.ALWAYS);
@@ -78,17 +78,17 @@ public class HelpView {
         Button closeBtn = new Button("×");
         closeBtn.setTooltip(new javafx.scene.control.Tooltip("Закрыть справку"));
         closeBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #a0a0b8;" +
+            "-fx-background-color: transparent; -fx-text-fill: -th-text-secondary;" +
             "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;" +
             "-fx-background-radius: 4;"
         );
         closeBtn.setOnMouseEntered(e -> closeBtn.setStyle(
-            "-fx-background-color: #ef4444; -fx-text-fill: white;" +
+            "-fx-background-color: -th-danger; -fx-text-fill: white;" +
             "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;" +
             "-fx-background-radius: 4;"
         ));
         closeBtn.setOnMouseExited(e -> closeBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #a0a0b8;" +
+            "-fx-background-color: transparent; -fx-text-fill: -th-text-secondary;" +
             "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;" +
             "-fx-background-radius: 4;"
         ));
@@ -221,7 +221,7 @@ public class HelpView {
                 Region sep = new Region();
                 sep.setPrefHeight(1);
                 sep.setMaxWidth(Double.MAX_VALUE);
-                sep.setStyle("-fx-background-color: #3a3a50;");
+                sep.setStyle("-fx-background-color: -th-border;");
                 VBox.setMargin(sep, new Insets(8, 0, 8, 0));
                 container.getChildren().add(sep);
                 i++;
@@ -232,7 +232,7 @@ public class HelpView {
             if (line.startsWith("# ")) {
                 String text = line.substring(2);
                 Label lbl = new Label(text);
-                lbl.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #a78bfa;");
+                lbl.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: -th-accent-light;");
                 lbl.setWrapText(true);
                 VBox.setMargin(lbl, new Insets(10, 0, 6, 0));
                 anchorMap.put(generateAnchor(text), lbl);
@@ -245,7 +245,7 @@ public class HelpView {
             if (line.startsWith("## ")) {
                 String text = line.substring(3);
                 Label lbl = new Label(text);
-                lbl.setStyle("-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+                lbl.setStyle("-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: -th-text-primary;");
                 lbl.setWrapText(true);
                 VBox.setMargin(lbl, new Insets(14, 0, 4, 0));
                 anchorMap.put(generateAnchor(text), lbl);
@@ -258,7 +258,7 @@ public class HelpView {
             if (line.startsWith("### ")) {
                 String text = line.substring(4);
                 Label lbl = new Label(text);
-                lbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #a78bfa;");
+                lbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -th-accent-light;");
                 lbl.setWrapText(true);
                 VBox.setMargin(lbl, new Insets(10, 0, 2, 0));
                 anchorMap.put(generateAnchor(text), lbl);
@@ -271,8 +271,8 @@ public class HelpView {
             if (line.startsWith("> ")) {
                 Label lbl = new Label(stripInlineMarkdown(line.substring(2)));
                 lbl.setStyle(
-                    "-fx-text-fill: #a0a0b8; -fx-font-style: italic; -fx-font-size: 13px;" +
-                    "-fx-border-color: #7c3aed; -fx-border-width: 0 0 0 3;" +
+                    "-fx-text-fill: -th-text-secondary; -fx-font-style: italic; -fx-font-size: 13px;" +
+                    "-fx-border-color: -th-accent; -fx-border-width: 0 0 0 3;" +
                     "-fx-padding: 2 0 2 12;"
                 );
                 lbl.setWrapText(true);
@@ -316,7 +316,7 @@ public class HelpView {
                 VBox tableBox = new VBox();
                 tableBox.setStyle(
                     "-fx-background-color: #1e1e30; -fx-background-radius: 8;" +
-                    "-fx-border-color: #3a3a50; -fx-border-radius: 8; -fx-border-width: 1;"
+                    "-fx-border-color: -th-border; -fx-border-radius: 8; -fx-border-width: 1;"
                 );
                 tableBox.setMaxWidth(790);
 
@@ -332,7 +332,7 @@ public class HelpView {
 
                     if (isHdr) {
                         rowBox.setStyle("-fx-background-color: #2a2a44;" +
-                            "-fx-border-color: transparent transparent #3a3a50 transparent;" +
+                            "-fx-border-color: transparent transparent -th-border transparent;" +
                             "-fx-border-width: 0 0 1 0;" +
                             (r == 0 ? "-fx-background-radius: 7 7 0 0;" : ""));
                     } else {
@@ -351,7 +351,7 @@ public class HelpView {
                         cell.prefWidthProperty().bind(tableBox.widthProperty().divide(cols));
                         cell.setMaxWidth(Double.MAX_VALUE);
                         if (isHdr) {
-                            cell.setStyle("-fx-text-fill: #a78bfa; -fx-font-weight: bold; -fx-font-size: 12px;");
+                            cell.setStyle("-fx-text-fill: -th-accent-light; -fx-font-weight: bold; -fx-font-size: 12px;");
                         } else {
                             cell.setStyle("-fx-text-fill: #d0d0e8; -fx-font-size: 12px;");
                         }
@@ -380,7 +380,7 @@ public class HelpView {
                         "-fx-border-color: transparent; -fx-padding: 1 0 1 8;"
                     );
                     link.setOnMouseEntered(e -> link.setStyle(
-                        "-fx-text-fill: #a78bfa; -fx-font-size: 13px; -fx-underline: true;" +
+                        "-fx-text-fill: -th-accent-light; -fx-font-size: 13px; -fx-underline: true;" +
                         "-fx-border-color: transparent; -fx-padding: 1 0 1 8;"
                     ));
                     link.setOnMouseExited(e -> link.setStyle(

@@ -36,7 +36,7 @@ public class MainApp extends Application {
 
         LoginView loginView = new LoginView();
         Scene scene = new Scene(loginView.getView(), 500, 620);
-        scene.getStylesheets().add(getClass().getResource("/styles/dark-theme.css").toExternalForm());
+        com.techhaven.view.ThemeToggle.applyTo(scene);
 
         stage.setScene(scene);
         stage.setResizable(false);
@@ -53,7 +53,7 @@ public class MainApp extends Application {
      */
     public static void setScene(javafx.scene.Parent root, double width, double height, boolean resizable) {
         Scene scene = new Scene(root, width, height);
-        scene.getStylesheets().add(MainApp.class.getResource("/styles/dark-theme.css").toExternalForm());
+        com.techhaven.view.ThemeToggle.applyTo(scene);
         primaryStage.setScene(scene);
         primaryStage.setResizable(resizable);
         centerOnScreen(primaryStage, width, height);
@@ -77,7 +77,7 @@ public class MainApp extends Application {
         }
 
         Scene scene = new Scene(root, 1280, 720);
-        scene.getStylesheets().add(MainApp.class.getResource("/styles/dark-theme.css").toExternalForm());
+        com.techhaven.view.ThemeToggle.applyTo(scene);
         newStage.setScene(scene);
         centerOnScreen(newStage, 1280, 720);
 
@@ -108,7 +108,7 @@ public class MainApp extends Application {
 
         LoginView loginView = new LoginView();
         Scene scene = new Scene(loginView.getView(), 500, 620);
-        scene.getStylesheets().add(MainApp.class.getResource("/styles/dark-theme.css").toExternalForm());
+        com.techhaven.view.ThemeToggle.applyTo(scene);
 
         loginStage.setScene(scene);
         loginStage.setResizable(false);

@@ -140,7 +140,7 @@ public class ProfileView {
         confirmPassField.setMaxWidth(340);
 
         Label passHint = new Label("Мин. 8 символов, заглавная, строчная, цифра, спецсимвол");
-        passHint.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 10px;");
+        passHint.setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 10px;");
 
         Label passStatus = new Label();
         passStatus.setVisible(false);
@@ -207,15 +207,15 @@ public class ProfileView {
 
         ScrollPane scroll = new ScrollPane(root);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #1e1e2e; -fx-background: #1e1e2e;");
+        scroll.setStyle("-fx-background-color: -th-bg-primary; -fx-background: -th-bg-primary;");
         return scroll;
     }
 
     private void showStatus(Label label, String text, boolean isError) {
         label.setText(text);
         label.setStyle(isError
-            ? "-fx-text-fill: #ef4444; -fx-font-size: 12px;"
-            : "-fx-text-fill: #10b981; -fx-font-size: 12px;");
+            ? "-fx-text-fill: -th-danger; -fx-font-size: 12px;"
+            : "-fx-text-fill: -th-success; -fx-font-size: 12px;");
         label.setVisible(true);
     }
 
@@ -232,7 +232,7 @@ public class ProfileView {
         lbl.getStyleClass().add("label-muted");
         lbl.setMinWidth(120);
         Label val = new Label(value);
-        val.setStyle("-fx-text-fill: #f0f0f0;");
+        val.setStyle("-fx-text-fill: -th-text-primary;");
         row.getChildren().addAll(lbl, val);
         return row;
     }

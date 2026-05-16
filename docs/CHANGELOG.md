@@ -6,6 +6,39 @@
 
 ---
 
+## [3.2.0] — 2026-05-16
+
+### Добавлено
+- **Светлая тема оформления** (`light-theme.css`): полное зеркало `dark-theme.css` с теми же селекторами и набором CSS-переменных `-th-*`, но светлой палитрой
+- **`ThemeManager`** (`config/ThemeManager.java`): singleton хранит активную тему, сохраняет выбор в `java.util.prefs.Preferences` (узел `com/techhaven`, ключ `ui.theme`), оповещает слушателей при смене, метод `applyTo(Scene)` снимает старый theme-CSS и подключает актуальный
+- **`ThemeToggle`** (`view/ThemeToggle.java`): утилита для UI-кнопки переключателя ☀/🌙 — обновляет иконку, переключает и применяет тему
+- **Кнопка переключения темы** в навбаре пользователя (`MainLayout`), топбаре администратора (`AdminLayout`) и окне входа (`LoginView`)
+- **Горячая клавиша `Alt+T`** для переключения темы из любого экрана
+- **14 новых тестов** для `ThemeManager` (JUnit 5): дефолт = DARK, set/get, toggle, persist в Preferences, fallback при невалидном значении, listener add/remove/notify, getCssPath, наличие CSS-ресурсов в classpath, singleton identity, Theme.opposite, isDark/isLight согласованность
+
+### Изменено
+- `MainApp.start()`, `MainApp.setScene()` (обе перегрузки), `MainApp.showLogin()` — вместо явного `scene.getStylesheets().add(".../dark-theme.css")` теперь `ThemeManager.getInstance().applyTo(scene)`
+- `DialogHelper.buildScene()` — то же изменение
+- **Рефакторинг inline-стилей**: 174 замены в 14 view-файлах — hardcoded HEX заменены на CSS-переменные `-th-*` (например, `setStyle("...#1e1e2e...")` → `setStyle("...-th-bg-primary...")`)
+- **Корневые backgrounds** в `MainLayout`, `AdminLayout`, `LoginView` — вместо inline `setStyle("-fx-background-color: #1e1e2e;")` теперь `getStyleClass().add("app-root")`
+- **Кнопки управления окном** (`_`, `□`, `×`) в `MainLayout`, `AdminLayout`, `LoginView` — теперь CSS-классы `window-control-button` и `window-close-button` вместо строки `winBtnBase`
+- **Кнопка «❓ Справка»** — CSS-класс `help-button` вместо inline-стиля
+- **Бейдж «ADMIN»** в `AdminLayout` — CSS-класс `role-badge-admin`
+- **`DialogHelper.createCloseButton()`** — CSS-класс `dialog-close-button` вместо ~30 строк inline-стиля
+- **`DialogHelper.cardStyle()`** — все hex заменены на CSS-переменные
+
+### Сохранено как константы
+- Цвета статусов заказов (`AdminOrdersView.statusColor()` — «Новый» = синий, «Доставлен» = зелёный и т.п.) — семантические, одинаковые в обеих темах
+- Цвета аватаров пользователей — раскрашиваются по хэшу username, едины для тем
+- Акценты уведомлений (`DialogHelper.showInfo/showError/showWarning`)
+
+### Документация
+- `README.md` — версия 3.2, новый раздел «7.bis. Темизация (Dark / Light)» с описанием архитектуры, перечнем CSS-переменных, инструкцией по добавлению новой темы
+- `UserManual.md` — добавлено описание кнопки темы и `Alt+T` в разделах «Навигация», «Горячие клавиши», «Частые вопросы»
+- `AdminManual.md` — то же для интерфейса администратора
+
+---
+
 ## [3.1.0] — 2026-03-15
 
 ### Добавлено

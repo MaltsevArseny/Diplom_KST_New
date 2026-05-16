@@ -70,7 +70,7 @@ public class AdminOrdersView {
         searchField.setPromptText("🔍 Поиск по клиенту или адресу...");
         searchField.setPrefWidth(280);
         searchField.setStyle(
-            "-fx-background-color: #2a2a3e; -fx-text-fill: #f0f0f0; -fx-border-color: #3a3a50;" +
+            "-fx-background-color: -th-bg-card; -fx-text-fill: -th-text-primary; -fx-border-color: -th-border;" +
             "-fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 8 12; -fx-font-size: 13px;"
         );
         HBox.setHgrow(searchField, Priority.ALWAYS);
@@ -91,7 +91,7 @@ public class AdminOrdersView {
         clearBtn.setOnAction(e -> { searchField.clear(); statusFilter.setValue("Все статусы"); });
 
         Label countLabel = new Label();
-        countLabel.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 12px;");
+        countLabel.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -143,7 +143,7 @@ public class AdminOrdersView {
             @Override protected void updateItem(String val, boolean empty) {
                 super.updateItem(val, empty);
                 setAlignment(Pos.CENTER);
-                if (empty || val == null || val.isEmpty()) { setText("—"); setStyle("-fx-text-fill: #6b7280; -fx-font-size: 13px;"); return; }
+                if (empty || val == null || val.isEmpty()) { setText("—"); setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 13px;"); return; }
                 // val = "2026-03-01 10:00 — 12:00" → дата (yyyy-MM-dd) + пробел + интервал
                 // Извлекаем дату (первые 10 символов, если начинается с yyyy-MM-dd)
                 String datePart;
@@ -178,7 +178,7 @@ public class AdminOrdersView {
                 setAlignment(Pos.CENTER);
                 if (empty || val == null || val.isEmpty()) {
                     setText("—");
-                    setStyle("-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+                    setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 13px;");
                     return;
                 }
                 // Формат: дата (первые 10 символов) + интервал на новой строке
@@ -319,7 +319,7 @@ public class AdminOrdersView {
 
         // ─── Заголовок ─────────────────────────────────────────────────────
         Label titleLbl = new Label("📦 Заказ #" + order.getId());
-        titleLbl.setStyle("-fx-font-size:17px;-fx-font-weight:bold;-fx-text-fill:#e2e8f0;");
+        titleLbl.setStyle("-fx-font-size:17px;-fx-font-weight:bold;-fx-text-fill:-th-text-primary;");
 
 
         // ─── Основные данные ────────────────────────────────────────────
@@ -353,7 +353,7 @@ public class AdminOrdersView {
         content.getChildren().add(statusRow);
 
         Label totalLbl = new Label(order.getFormattedTotal());
-        totalLbl.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#10b981;");
+        totalLbl.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:-th-success;");
         HBox totalRow = new HBox(8, sectionLabel("💰 Итого:"), totalLbl);
         totalRow.setAlignment(Pos.CENTER_LEFT);
         content.getChildren().add(totalRow);
@@ -374,7 +374,7 @@ public class AdminOrdersView {
         content.getChildren().add(sectionLabel("🚚 Установить дату доставки:"));
 
         DatePicker plannedDate = new DatePicker();
-        plannedDate.setStyle("-fx-background-color:#252538;-fx-border-color:#3a3a50;-fx-border-radius:8;-fx-background-radius:8;");
+        plannedDate.setStyle("-fx-background-color:-th-bg-secondary;-fx-border-color:-th-border;-fx-border-radius:8;-fx-background-radius:8;");
         if (order.getPlannedDeliveryDate() != null) {
             try { plannedDate.setValue(LocalDate.parse(order.getPlannedDeliveryDate())); } catch (Exception ignored) {}
         }
@@ -385,7 +385,7 @@ public class AdminOrdersView {
         ));
         plannedInterval.setValue(order.getPlannedDeliveryInterval());
         plannedInterval.setPromptText("Интервал");
-        plannedInterval.setStyle("-fx-background-color:#252538;-fx-border-color:#3a3a50;-fx-border-radius:8;");
+        plannedInterval.setStyle("-fx-background-color:-th-bg-secondary;-fx-border-color:-th-border;-fx-border-radius:8;");
 
         Button savePlannedBtn = new Button("💾 Сохранить доставку");
         savePlannedBtn.getStyleClass().add("btn-primary");
@@ -441,17 +441,17 @@ public class AdminOrdersView {
     /** Стилизованная метка секции */
     private Label sectionLabel(String text) {
         Label l = new Label(text);
-        l.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#a0a0b8;-fx-padding:4 0 2 0;");
+        l.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:-th-text-secondary;-fx-padding:4 0 2 0;");
         return l;
     }
 
     /** Строка информации: метка + значение */
     private HBox infoRow(String label, String value) {
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-text-fill:#6b7280;-fx-font-size:13px;");
+        lbl.setStyle("-fx-text-fill:-th-text-muted;-fx-font-size:13px;");
         lbl.setMinWidth(180);
         Label val = new Label(value != null ? value : "—");
-        val.setStyle("-fx-text-fill:#e2e8f0;-fx-font-size:13px;");
+        val.setStyle("-fx-text-fill:-th-text-primary;-fx-font-size:13px;");
         val.setWrapText(true);
         HBox row = new HBox(8, lbl, val);
         row.setAlignment(Pos.CENTER_LEFT);

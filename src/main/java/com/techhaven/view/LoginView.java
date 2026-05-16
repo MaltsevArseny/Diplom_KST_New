@@ -47,13 +47,13 @@ public class LoginView {
     // Для перетаскивания окна
     private double dragX, dragY;
 
-    private static final String BOX_NORMAL   = "-fx-background-color: #2a2a3e; -fx-background-radius: 8; -fx-border-color: #3f3f5a; -fx-border-radius: 8; -fx-padding: 0 12 0 0;";
-    private static final String BOX_ERROR    = "-fx-background-color: #2a2a3e; -fx-background-radius: 8; -fx-border-color: #ef4444; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
+    private static final String BOX_NORMAL   = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-border; -fx-border-radius: 8; -fx-padding: 0 12 0 0;";
+    private static final String BOX_ERROR    = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-danger; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
 
     public Parent getView() {
         // Корень окна — без отступов
         VBox root = new VBox(0);
-        root.setStyle("-fx-background-color: #1e1e2e;");
+        root.getStyleClass().add("app-root");
 
         // === Кастомная панель управления окном (в самом верху) ===
         HBox windowBar = createWindowBar();
@@ -90,7 +90,7 @@ public class LoginView {
         // Заголовок
         Label title = new Label("DigitalHub");
         title.getStyleClass().add("heading");
-        title.setStyle("-fx-text-fill: #a78bfa;");
+        title.setStyle("-fx-text-fill: -th-accent-light;");
 
         Label subtitle = new Label("Магазин компьютерного оборудования");
         subtitle.getStyleClass().add("label-secondary");
@@ -105,18 +105,18 @@ public class LoginView {
         emailCombo.setPrefHeight(44);
         emailCombo.setMaxWidth(Double.MAX_VALUE);
         emailCombo.setStyle(
-            "-fx-background-color:#2a2a3e;" +
-            "-fx-border-color:#3f3f5a;" +
+            "-fx-background-color: -th-bg-card;" +
+            "-fx-border-color: -th-border;" +
             "-fx-border-radius:8;" +
             "-fx-background-radius:8;" +
             "-fx-font-size:14px;"
         );
         // Стилизуем внутренний TextField ComboBox
-        emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:#e2e8f0;-fx-prompt-text-fill:#9ca3af;");
+        emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:-th-text-primary;-fx-prompt-text-fill:-th-text-muted;");
 
         // Кнопка очистки истории
         Button clearHistory = new Button("×");
-        clearHistory.setStyle("-fx-background-color:transparent;-fx-text-fill:#9ca3af;-fx-font-size:14px;-fx-cursor:hand;-fx-padding:0 4;");
+        clearHistory.setStyle("-fx-background-color:transparent;-fx-text-fill:-th-text-muted;-fx-font-size:14px;-fx-cursor:hand;-fx-padding:0 4;");
         clearHistory.setTooltip(new javafx.scene.control.Tooltip("Очистить историю"));
         clearHistory.setOnAction(e -> {
             prefs.remove("email_history");
@@ -131,7 +131,7 @@ public class LoginView {
 
         emailError = createErrorHint();
         emailCombo.getEditor().textProperty().addListener((obs, o, n) -> {
-            emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:#e2e8f0;-fx-prompt-text-fill:#9ca3af;");
+            emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:-th-text-primary;-fx-prompt-text-fill:-th-text-muted;");
             emailError.setVisible(false); emailError.setManaged(false);
             generalError.setVisible(false); generalError.setManaged(false);
         });
@@ -164,7 +164,7 @@ public class LoginView {
         passwordTextField.textProperty().bindBidirectional(passwordField.textProperty());
 
         Label eyeIcon = new Label("\uD83D\uDC41");
-        eyeIcon.setStyle("-fx-font-size: 18px; -fx-cursor: hand; -fx-text-fill: #9ca3af; -fx-padding: 0 0 0 8;");
+        eyeIcon.setStyle("-fx-font-size: 18px; -fx-cursor: hand; -fx-text-fill: -th-text-muted; -fx-padding: 0 0 0 8;");
         eyeIcon.setOnMouseClicked(e -> togglePasswordVisibility(eyeIcon));
 
         passwordBox = new HBox(0);
@@ -173,8 +173,8 @@ public class LoginView {
         passwordBox.setStyle(BOX_NORMAL);
         HBox.setHgrow(passwordField, Priority.ALWAYS);
         HBox.setHgrow(passwordTextField, Priority.ALWAYS);
-        passwordField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: #e2e8f0;");
-        passwordTextField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: #e2e8f0;");
+        passwordField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -th-text-primary;");
+        passwordTextField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -th-text-primary;");
         passwordBox.getChildren().addAll(passwordField, passwordTextField, eyeIcon);
 
         passwordError = createErrorHint();
@@ -191,7 +191,7 @@ public class LoginView {
         generalError = new Label();
         generalError.setWrapText(true);
         generalError.setMaxWidth(340);
-        generalError.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 12px; -fx-padding: 8 12; -fx-background-color: rgba(239,68,68,0.1); -fx-background-radius: 8;");
+        generalError.setStyle("-fx-text-fill: -th-danger; -fx-font-size: 12px; -fx-padding: 8 12; -fx-background-color: rgba(239,68,68,0.1); -fx-background-radius: 8;");
         generalError.setVisible(false);
         generalError.setManaged(false);
 
@@ -199,7 +199,7 @@ public class LoginView {
         boolean remembered = prefs.getBoolean("remember_me", false);
         CheckBox rememberMe = new CheckBox("Запомнить меня");
         rememberMe.setSelected(remembered);
-        rememberMe.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 12px;");
+        rememberMe.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
 
         if (remembered) {
             String savedEmail = prefs.get("saved_email", "");
@@ -257,15 +257,20 @@ public class LoginView {
         HBox bar = new HBox();
         bar.setAlignment(Pos.CENTER_RIGHT);
         bar.setPadding(new Insets(2, 2, 0, 0));
-        bar.setStyle("-fx-cursor: move;");
+        bar.getStyleClass().add("drag-bar");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        // Кнопка переключения темы (в окне логина) — Alt+T
+        Button themeBtn = new Button();
+        themeBtn.getStyleClass().add("theme-toggle-button");
+        themeBtn.setTooltip(new javafx.scene.control.Tooltip("Сменить тему  [Alt+T]"));
+        ThemeToggle.refreshIcon(themeBtn);
+        themeBtn.setOnAction(e -> ThemeToggle.toggleAndApply(themeBtn.getScene(), themeBtn));
+
         Button minimizeBtn = new Button("_");
-        minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
-        minimizeBtn.setOnMouseEntered(e -> minimizeBtn.setStyle("-fx-background-color: #3f3f5a; -fx-text-fill: #e2e8f0; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
-        minimizeBtn.setOnMouseExited(e -> minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));
+        minimizeBtn.getStyleClass().add("window-control-button");
         minimizeBtn.setTooltip(new javafx.scene.control.Tooltip("Свернуть"));
         minimizeBtn.setOnAction(e -> {
             Stage stage = (Stage) minimizeBtn.getScene().getWindow();
@@ -273,16 +278,25 @@ public class LoginView {
         });
 
         Button closeBtn = new Button("×");
-        closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
-        closeBtn.setOnMouseExited(e -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));
+        closeBtn.getStyleClass().addAll("window-control-button", "window-close-button");
         closeBtn.setTooltip(new javafx.scene.control.Tooltip("Закрыть"));
         closeBtn.setOnAction(e -> {
             Stage stage = (Stage) closeBtn.getScene().getWindow();
             stage.close();
         });
 
-        bar.getChildren().addAll(spacer, minimizeBtn, closeBtn);
+        // Alt+T в окне логина
+        bar.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene != null) {
+                scene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(
+                        javafx.scene.input.KeyCode.T,
+                        javafx.scene.input.KeyCombination.ALT_DOWN),
+                    () -> ThemeToggle.toggleAndApply(scene, themeBtn));
+            }
+        });
+
+        bar.getChildren().addAll(spacer, themeBtn, minimizeBtn, closeBtn);
         return bar;
     }
 
@@ -295,7 +309,7 @@ public class LoginView {
         boolean hasError = false;
 
         if (email.isEmpty()) {
-            emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:#ef4444;-fx-prompt-text-fill:#9ca3af;");
+            emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:-th-danger;-fx-prompt-text-fill:-th-text-muted;");
             emailError.setText("Введите email");
             emailError.setVisible(true); emailError.setManaged(true);
             hasError = true;
@@ -340,7 +354,7 @@ public class LoginView {
         } else {
             String msg = result.message;
             if (msg.contains("email") || msg.contains("найден")) {
-                emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:#ef4444;");
+                emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:-th-danger;");
                 emailError.setText(msg); emailError.setVisible(true); emailError.setManaged(true);
             } else if (msg.contains("пароль") || msg.contains("Пароль") || msg.contains("попыток")) {
                 setBoxError(passwordBox, passwordError, msg);
@@ -363,7 +377,7 @@ public class LoginView {
     }
 
     private void clearAllErrors() {
-        emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:#e2e8f0;-fx-prompt-text-fill:#9ca3af;");
+        emailCombo.getEditor().setStyle("-fx-background-color:transparent;-fx-text-fill:-th-text-primary;-fx-prompt-text-fill:-th-text-muted;");
         passwordBox.setStyle(BOX_NORMAL);
         emailError.setVisible(false); emailError.setManaged(false);
         passwordError.setVisible(false); passwordError.setManaged(false);
@@ -395,7 +409,7 @@ public class LoginView {
 
     private Label createErrorHint() {
         Label label = new Label();
-        label.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 11px; -fx-padding: -8 0 0 4;");
+        label.setStyle("-fx-text-fill: -th-danger; -fx-font-size: 11px; -fx-padding: -8 0 0 4;");
         label.setWrapText(true);
         label.setMaxWidth(340);
         label.setVisible(false);

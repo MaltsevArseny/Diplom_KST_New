@@ -53,7 +53,7 @@ public class ProductDetailView {
         imageBox.setAlignment(Pos.CENTER);
         imageBox.setPrefWidth(200);
         imageBox.setPrefHeight(200);
-        imageBox.setStyle("-fx-background-color: #353550; -fx-background-radius: 12;");
+        imageBox.setStyle("-fx-background-color: -th-bg-hover; -fx-background-radius: 12;");
         Label iconLabel = new Label("🖥");
         iconLabel.setStyle("-fx-font-size: 64px;");
         imageBox.getChildren().add(iconLabel);
@@ -66,28 +66,28 @@ public class ProductDetailView {
         categoryBadge.getStyleClass().add("badge");
 
         Label name = new Label(product.getName());
-        name.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #f0f0f0;");
+        name.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: -th-text-primary;");
         name.setWrapText(true);
 
         Label description = new Label(product.getDescription() != null ? product.getDescription() : "Описание отсутствует");
         description.getStyleClass().add("label-secondary");
         description.setWrapText(true);
-        description.setStyle("-fx-font-size: 15px; -fx-text-fill: #a0a0b8;");
+        description.setStyle("-fx-font-size: 15px; -fx-text-fill: -th-text-secondary;");
 
         // Спецификации
         VBox specsBox = new VBox(6);
         Label specsTitle = new Label("Характеристики");
-        specsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #f0f0f0;");
+        specsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: -th-text-primary;");
         Label specsValue = new Label(product.getSpecifications() != null ?
             product.getSpecifications() : "—");
-        specsValue.setStyle("-fx-text-fill: #a0a0b8;");
+        specsValue.setStyle("-fx-text-fill: -th-text-secondary;");
         specsValue.setWrapText(true);
         specsBox.getChildren().addAll(specsTitle, specsValue);
 
         // Цена
         Label price = new Label(product.getFormattedPrice());
         price.getStyleClass().add("price-label");
-        price.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #10b981;");
+        price.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: -th-success;");
 
         // Наличие
         Label stock = new Label(product.getStockStatus() +

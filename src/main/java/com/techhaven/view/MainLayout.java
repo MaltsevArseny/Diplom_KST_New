@@ -25,13 +25,14 @@ public class MainLayout {
     private StackPane contentArea;
     private Label cartBadge, favBadge, ordersBadge;
     private Button catalogBtn, cartBtn, favBtn, ordersBtn, profileBtn;
+    private Button themeToggleBtn;
     private final CartService cartService = new CartService();
     private final com.techhaven.service.FavoriteService favoriteService = new com.techhaven.service.FavoriteService();
     private final com.techhaven.service.OrderService orderService = new com.techhaven.service.OrderService();
 
     public Parent getView() {
         root = new BorderPane();
-        root.setStyle("-fx-background-color: #1e1e2e;");
+        root.getStyleClass().add("app-root");
 
         // Верхняя навигация
         root.setTop(createNavBar());
@@ -56,6 +57,7 @@ public class MainLayout {
                 scene.getAccelerators().put(new KeyCodeCombination(KeyCode.M,     KeyCombination.ALT_DOWN), () -> MainApp.getPrimaryStage().setIconified(true));
                 scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Q,     KeyCombination.ALT_DOWN), () -> { SessionManager.getInstance().logout(); MainApp.showLogin(); });
                 scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F1),                             () -> HelpView.show("UserManual.md", "Справка пользователя"));
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.T,     KeyCombination.ALT_DOWN), () -> ThemeToggle.toggleAndApply(scene, themeToggleBtn));
             }
         });
 
@@ -72,7 +74,7 @@ public class MainLayout {
         navBar.setPadding(new Insets(8, 12, 8, 24));
 
         Label logo = new Label("DigitalHub");
-        logo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #a78bfa;");
+        logo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -th-accent-light;");
 
         Region spacer1 = new Region();
         HBox.setHgrow(spacer1, Priority.ALWAYS);
@@ -88,7 +90,7 @@ public class MainLayout {
         // Бейдж корзины
         cartBadge = new Label();
         cartBadge.getStyleClass().add("badge");
-        cartBadge.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
+        cartBadge.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
         cartBadge.setVisible(false);
 
         StackPane cartPane = new StackPane(cartBtn, cartBadge);
@@ -101,7 +103,7 @@ public class MainLayout {
         // Бейдж избранного
         favBadge = new Label();
         favBadge.getStyleClass().add("badge");
-        favBadge.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
+        favBadge.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
         favBadge.setVisible(false);
 
         StackPane favPane = new StackPane(favBtn, favBadge);
@@ -114,7 +116,7 @@ public class MainLayout {
         // Бейдж заказов
         ordersBadge = new Label();
         ordersBadge.getStyleClass().add("badge");
-        ordersBadge.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
+        ordersBadge.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
         ordersBadge.setVisible(false);
 
         StackPane ordersPane = new StackPane(ordersBtn, ordersBadge);
@@ -128,7 +130,7 @@ public class MainLayout {
         HBox.setHgrow(spacer2, Priority.ALWAYS);
 
         Label userName = new Label(SessionManager.getInstance().getCurrentUser().getUsername());
-        userName.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 13px;");
+        userName.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 13px;");
 
         Button logoutBtn = new Button("🚪  Выйти");
         logoutBtn.getStyleClass().add("btn-danger");
@@ -140,20 +142,13 @@ public class MainLayout {
         });
 
         // ── Кнопки управления окном ──────────────────────────────────────
-        String winBtnBase = "-fx-background-color:transparent;-fx-text-fill:#a0a0b8;" +
-                            "-fx-font-size:14px;-fx-padding:2 10;-fx-cursor:hand;" +
-                            "-fx-background-radius:4;-fx-min-width:32;-fx-pref-width:32;";
         Button minBtn = new Button("_");
-        minBtn.setStyle(winBtnBase);
-        minBtn.setOnMouseEntered(e -> minBtn.setStyle(winBtnBase + "-fx-background-color:#2d2d48;"));
-        minBtn.setOnMouseExited(e  -> minBtn.setStyle(winBtnBase));
+        minBtn.getStyleClass().add("window-control-button");
         minBtn.setOnAction(e -> MainApp.getPrimaryStage().setIconified(true));
         minBtn.setTooltip(new Tooltip("Свернуть  [Alt+M]"));
 
         Button maxBtn = new Button("□");
-        maxBtn.setStyle(winBtnBase);
-        maxBtn.setOnMouseEntered(e -> maxBtn.setStyle(winBtnBase + "-fx-background-color:#2d2d48;"));
-        maxBtn.setOnMouseExited(e  -> maxBtn.setStyle(winBtnBase));
+        maxBtn.getStyleClass().add("window-control-button");
         maxBtn.setOnAction(e -> {
             Stage st = MainApp.getPrimaryStage();
             st.setMaximized(!st.isMaximized());
@@ -161,9 +156,7 @@ public class MainLayout {
         maxBtn.setTooltip(new Tooltip("Развернуть / восстановить"));
 
         Button closeBtn = new Button("×");
-        closeBtn.setStyle(winBtnBase + "-fx-text-fill:#f87171;");
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle(winBtnBase + "-fx-background-color:#ef4444;-fx-text-fill:white;"));
-        closeBtn.setOnMouseExited(e  -> closeBtn.setStyle(winBtnBase + "-fx-text-fill:#f87171;"));
+        closeBtn.getStyleClass().addAll("window-control-button", "window-close-button");
         closeBtn.setOnAction(e -> MainApp.getPrimaryStage().close());
         closeBtn.setTooltip(new Tooltip("Закрыть приложение  [Alt+W]"));
 
@@ -171,16 +164,20 @@ public class MainLayout {
         winControls.setAlignment(Pos.CENTER);
 
         Button helpBtn = new Button("❓  Справка");
-        helpBtn.getStyleClass().addAll("btn-small");
-        helpBtn.setStyle("-fx-background-color: #2d2d48; -fx-text-fill: #a0d4ff; -fx-font-size: 12px; -fx-background-radius: 6; -fx-padding: 4 10; -fx-cursor: hand;");
-        helpBtn.setOnMouseEntered(e -> helpBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 6; -fx-padding: 4 10; -fx-cursor: hand;"));
-        helpBtn.setOnMouseExited(e  -> helpBtn.setStyle("-fx-background-color: #2d2d48; -fx-text-fill: #a0d4ff; -fx-font-size: 12px; -fx-background-radius: 6; -fx-padding: 4 10; -fx-cursor: hand;"));
+        helpBtn.getStyleClass().addAll("btn-small", "help-button");
         helpBtn.setTooltip(new Tooltip("Руководство пользователя  [F1]"));
         helpBtn.setOnAction(e -> HelpView.show("UserManual.md", "Справка пользователя"));
 
+        // Кнопка переключения темы (☀/🌙)
+        themeToggleBtn = new Button();
+        themeToggleBtn.getStyleClass().add("theme-toggle-button");
+        themeToggleBtn.setTooltip(new Tooltip("Сменить тему  [Alt+T]"));
+        ThemeToggle.refreshIcon(themeToggleBtn);
+        themeToggleBtn.setOnAction(e -> ThemeToggle.toggleAndApply(themeToggleBtn.getScene(), themeToggleBtn));
+
         navBar.getChildren().addAll(logo, spacer1,
             catalogBtn, cartPane, favPane, ordersPane, profileBtn,
-            spacer2, userName, helpBtn, logoutBtn, winControls);
+            spacer2, userName, themeToggleBtn, helpBtn, logoutBtn, winControls);
 
         // ── Перетаскивание окна за навбар ────────────────────────────────
         navBar.setOnMousePressed(e -> {
@@ -318,7 +315,7 @@ public class MainLayout {
         imageBox.setAlignment(Pos.CENTER);
         imageBox.setMinWidth(220);
         imageBox.setMinHeight(220);
-        imageBox.setStyle("-fx-background-color: #2a2a3e; -fx-background-radius: 12;");
+        imageBox.setStyle("-fx-background-color: -th-bg-card; -fx-background-radius: 12;");
         Label icon = new Label("🖥");
         icon.setStyle("-fx-font-size: 80px;");
         imageBox.getChildren().add(icon);
@@ -339,13 +336,13 @@ public class MainLayout {
 
         Label desc = new Label(product.getDescription());
         desc.setWrapText(true);
-        desc.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 14px; -fx-line-spacing: 5;");
+        desc.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 14px; -fx-line-spacing: 5;");
 
         VBox specsBox = new VBox(4);
         Label specsTitle = new Label("ХАРАКТЕРИСТИКИ");
-        specsTitle.setStyle("-fx-text-fill: #6b7280; -fx-font-weight: bold; -fx-font-size: 11px; -fx-letter-spacing: 1px;");
+        specsTitle.setStyle("-fx-text-fill: -th-text-muted; -fx-font-weight: bold; -fx-font-size: 11px; -fx-letter-spacing: 1px;");
         Label specsValue = new Label(product.getSpecifications() != null ? product.getSpecifications() : "—");
-        specsValue.setStyle("-fx-text-fill: #9ca3af; -fx-font-size: 13px;");
+        specsValue.setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 13px;");
         specsValue.setWrapText(true);
         specsBox.getChildren().addAll(specsTitle, specsValue);
 

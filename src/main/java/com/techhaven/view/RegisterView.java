@@ -39,17 +39,17 @@ public class RegisterView {
     private double dragX, dragY;
 
     // Стили полей — единые с LoginView
-    private static final String FIELD_NORMAL = "-fx-background-color: #2a2a3e; -fx-border-color: #3f3f5a; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: #e2e8f0; -fx-padding: 8 12;";
-    private static final String FIELD_ERROR  = "-fx-background-color: #2a2a3e; -fx-border-color: #ef4444; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: #e2e8f0; -fx-padding: 8 12; -fx-border-width: 2;";
-    private static final String FIELD_OK     = "-fx-background-color: #2a2a3e; -fx-border-color: #22c55e; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: #e2e8f0; -fx-padding: 8 12; -fx-border-width: 2;";
-    private static final String BOX_NORMAL   = "-fx-background-color: #2a2a3e; -fx-background-radius: 8; -fx-border-color: #3f3f5a; -fx-border-radius: 8; -fx-padding: 0 12 0 0;";
-    private static final String BOX_ERROR    = "-fx-background-color: #2a2a3e; -fx-background-radius: 8; -fx-border-color: #ef4444; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
-    private static final String BOX_OK       = "-fx-background-color: #2a2a3e; -fx-background-radius: 8; -fx-border-color: #22c55e; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
+    private static final String FIELD_NORMAL = "-fx-background-color: -th-bg-card; -fx-border-color: -th-border; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: -th-text-primary; -fx-padding: 8 12;";
+    private static final String FIELD_ERROR  = "-fx-background-color: -th-bg-card; -fx-border-color: -th-danger; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: -th-text-primary; -fx-padding: 8 12; -fx-border-width: 2;";
+    private static final String FIELD_OK     = "-fx-background-color: -th-bg-card; -fx-border-color: #22c55e; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: -th-text-primary; -fx-padding: 8 12; -fx-border-width: 2;";
+    private static final String BOX_NORMAL   = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-border; -fx-border-radius: 8; -fx-padding: 0 12 0 0;";
+    private static final String BOX_ERROR    = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: -th-danger; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
+    private static final String BOX_OK       = "-fx-background-color: -th-bg-card; -fx-background-radius: 8; -fx-border-color: #22c55e; -fx-border-radius: 8; -fx-padding: 0 12 0 0; -fx-border-width: 2;";
 
     public Parent getView() {
         // Корень — без отступов
         VBox root = new VBox(0);
-        root.setStyle("-fx-background-color: #1e1e2e;");
+        root.setStyle("-fx-background-color: -th-bg-primary;");
 
         // === Кастомная панель управления окном (в самом верху) ===
         HBox windowBar = createWindowBar();
@@ -84,7 +84,7 @@ public class RegisterView {
 
         Label title = new Label("Регистрация");
         title.getStyleClass().add("heading");
-        title.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 24px;");
+        title.setStyle("-fx-text-fill: -th-accent-light; -fx-font-size: 24px;");
 
         Label subtitle = new Label("Создайте аккаунт для покупок");
         subtitle.getStyleClass().add("label-secondary");
@@ -138,7 +138,7 @@ public class RegisterView {
         passwordTextField.textProperty().bindBidirectional(passwordField.textProperty());
 
         Label eyeIcon1 = new Label("\uD83D\uDC41");
-        eyeIcon1.setStyle("-fx-font-size: 18px; -fx-cursor: hand; -fx-text-fill: #9ca3af; -fx-padding: 0 0 0 8;");
+        eyeIcon1.setStyle("-fx-font-size: 18px; -fx-cursor: hand; -fx-text-fill: -th-text-muted; -fx-padding: 0 0 0 8;");
         eyeIcon1.setOnMouseClicked(e -> {
             passwordVisible = !passwordVisible;
             toggleField(passwordField, passwordTextField, eyeIcon1, passwordVisible);
@@ -159,7 +159,7 @@ public class RegisterView {
 
         // Подсказки по паролю
         Label passwordHint = new Label("Мин. 8 символов, заглавная, строчная, цифра, спецсимвол");
-        passwordHint.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 10px; -fx-padding: -4 0 0 4;");
+        passwordHint.setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 10px; -fx-padding: -4 0 0 4;");
         passwordHint.setWrapText(true);
         passwordHint.setMaxWidth(360);
 
@@ -176,7 +176,7 @@ public class RegisterView {
         confirmPasswordTextField.textProperty().bindBidirectional(confirmPasswordField.textProperty());
 
         Label eyeIcon2 = new Label("\uD83D\uDC41");
-        eyeIcon2.setStyle("-fx-font-size: 18px; -fx-cursor: hand; -fx-text-fill: #9ca3af; -fx-padding: 0 0 0 8;");
+        eyeIcon2.setStyle("-fx-font-size: 18px; -fx-cursor: hand; -fx-text-fill: -th-text-muted; -fx-padding: 0 0 0 8;");
         eyeIcon2.setOnMouseClicked(e -> {
             confirmVisible = !confirmVisible;
             toggleField(confirmPasswordField, confirmPasswordTextField, eyeIcon2, confirmVisible);
@@ -197,7 +197,7 @@ public class RegisterView {
         generalError = new Label();
         generalError.setWrapText(true);
         generalError.setMaxWidth(360);
-        generalError.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 12px; -fx-padding: 8 12; -fx-background-color: rgba(239,68,68,0.1); -fx-background-radius: 8;");
+        generalError.setStyle("-fx-text-fill: -th-danger; -fx-font-size: 12px; -fx-padding: 8 12; -fx-background-color: rgba(239,68,68,0.1); -fx-background-radius: 8;");
         generalError.setVisible(false);
         generalError.setManaged(false);
 
@@ -223,7 +223,7 @@ public class RegisterView {
         );
         gdprCheckBox.setWrapText(true);
         gdprCheckBox.setMaxWidth(360);
-        gdprCheckBox.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 11px;");
+        gdprCheckBox.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 11px;");
         gdprCheckBox.setSelected(false);
         registerBtn.setDisable(true);
 
@@ -264,9 +264,9 @@ public class RegisterView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button minimizeBtn = new Button("_");
-        minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
-        minimizeBtn.setOnMouseEntered(e -> minimizeBtn.setStyle("-fx-background-color: #3f3f5a; -fx-text-fill: #e2e8f0; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
-        minimizeBtn.setOnMouseExited(e -> minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));
+        minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
+        minimizeBtn.setOnMouseEntered(e -> minimizeBtn.setStyle("-fx-background-color: -th-border; -fx-text-fill: -th-text-primary; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
+        minimizeBtn.setOnMouseExited(e -> minimizeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));
         minimizeBtn.setTooltip(new javafx.scene.control.Tooltip("Свернуть"));
         minimizeBtn.setOnAction(e -> {
             Stage stage = (Stage) minimizeBtn.getScene().getWindow();
@@ -274,9 +274,9 @@ public class RegisterView {
         });
 
         Button closeBtn = new Button("×");
-        closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
-        closeBtn.setOnMouseExited(e -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));
+        closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;");
+        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle("-fx-background-color: -th-danger; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10; -fx-background-radius: 6;"));
+        closeBtn.setOnMouseExited(e -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 10;"));
         closeBtn.setTooltip(new javafx.scene.control.Tooltip("Закрыть"));
         closeBtn.setOnAction(e -> {
             Stage stage = (Stage) closeBtn.getScene().getWindow();
@@ -364,8 +364,8 @@ public class RegisterView {
         box.setStyle(BOX_NORMAL);
         HBox.setHgrow(passField, Priority.ALWAYS);
         HBox.setHgrow(textField, Priority.ALWAYS);
-        passField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: #e2e8f0;");
-        textField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: #e2e8f0;");
+        passField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -th-text-primary;");
+        textField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -th-text-primary;");
         box.getChildren().addAll(passField, textField, eye);
         return box;
     }
@@ -420,7 +420,7 @@ public class RegisterView {
 
     private Label createErrorHint() {
         Label label = new Label();
-        label.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 11px; -fx-padding: -4 0 0 4;");
+        label.setStyle("-fx-text-fill: -th-danger; -fx-font-size: 11px; -fx-padding: -4 0 0 4;");
         label.setWrapText(true);
         label.setMaxWidth(360);
         label.setVisible(false);

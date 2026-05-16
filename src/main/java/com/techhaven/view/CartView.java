@@ -58,7 +58,7 @@ public class CartView {
         // Итог корзины — объявляем ДО цикла, чтобы lambda могли его обновлять
         double initialTotal = cartService.getTotal();
         Label totalLabel = new Label("Итого: " + String.format("%,.0f ₽", initialTotal));
-        totalLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #10b981;");
+        totalLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: -th-success;");
         double[] totalRef = { initialTotal }; // изменяемый итог для lambda
 
         // Группируем по категории
@@ -92,7 +92,7 @@ public class CartView {
             HBox.setHgrow(info, Priority.ALWAYS);
 
             Hyperlink name = new Hyperlink(item.getProductName());
-            name.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #7c3aed; -fx-border-color: transparent; -fx-padding: 0;");
+            name.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -th-accent; -fx-border-color: transparent; -fx-padding: 0;");
             name.setOnAction(e -> mainLayout.showProductDetail(item.getProductId()));
 
             Label unitPrice = new Label("Цена: " + item.getFormattedPrice());
@@ -111,21 +111,21 @@ public class CartView {
 
             Button minusBtn = new Button("−");
             minusBtn.setStyle(
-                "-fx-background-color: #3f3f5a; -fx-text-fill: #f0f0f0;" +
+                "-fx-background-color: -th-border; -fx-text-fill: -th-text-primary;" +
                 "-fx-font-size: 16px; -fx-font-weight: bold;" +
                 "-fx-min-width: 34; -fx-min-height: 34; -fx-background-radius: 8; -fx-cursor: hand;"
             );
             minusBtn.setTooltip(new Tooltip("Уменьшить количество"));
 
             Label qtyValue = new Label(String.valueOf(item.getQuantity()));
-            qtyValue.setStyle("-fx-text-fill: #f0f0f0; -fx-font-size: 16px; -fx-font-weight: bold;" +
+            qtyValue.setStyle("-fx-text-fill: -th-text-primary; -fx-font-size: 16px; -fx-font-weight: bold;" +
                 "-fx-min-width: 36; -fx-alignment: center;");
 
             Button plusBtn = new Button("+");
-            final String PLUS_ACTIVE = "-fx-background-color: #10b981; -fx-text-fill: white;" +
+            final String PLUS_ACTIVE = "-fx-background-color: -th-success; -fx-text-fill: white;" +
                 "-fx-font-size: 16px; -fx-font-weight: bold;" +
                 "-fx-min-width: 34; -fx-min-height: 34; -fx-background-radius: 8; -fx-cursor: hand;";
-            final String PLUS_DISABLED = "-fx-background-color: #2a2a3e; -fx-text-fill: #4a4a60;" +
+            final String PLUS_DISABLED = "-fx-background-color: -th-bg-card; -fx-text-fill: #4a4a60;" +
                 "-fx-font-size: 16px; -fx-font-weight: bold;" +
                 "-fx-min-width: 34; -fx-min-height: 34; -fx-opacity: 0.6;";
             plusBtn.setStyle(PLUS_ACTIVE);
@@ -153,7 +153,7 @@ public class CartView {
             Runnable startUndoRemoval = () -> {
                 row.getChildren().clear();
                 Label undoMsg = new Label("Товар удален из корзины");
-                undoMsg.setStyle("-fx-text-fill: #a0a0b8; -fx-font-style: italic;");
+                undoMsg.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-style: italic;");
                 Button undoBtn = new Button("Отмена (5с) ↩");
                 undoBtn.getStyleClass().addAll("button", "btn-small");
                 undoBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");
@@ -220,12 +220,12 @@ public class CartView {
         HBox footer = new HBox(20);
         footer.setAlignment(Pos.CENTER_RIGHT);
         footer.setPadding(new Insets(16));
-        footer.setStyle("-fx-background-color: #252538; -fx-background-radius: 12; -fx-border-color: #3a3a50; -fx-border-radius: 12;");
+        footer.setStyle("-fx-background-color: -th-bg-secondary; -fx-background-radius: 12; -fx-border-color: -th-border; -fx-border-radius: 12;");
 
         Button checkoutBtn = new Button("Оформить заказ →");
         checkoutBtn.getStyleClass().add("btn-primary");
         checkoutBtn.setPrefHeight(44);
-        checkoutBtn.setStyle("-fx-font-size: 16px; -fx-background-color: #7c3aed; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;");
+        checkoutBtn.setStyle("-fx-font-size: 16px; -fx-background-color: -th-accent; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;");
         checkoutBtn.setTooltip(new Tooltip("Перейти к оформлению заказа"));
         checkoutBtn.setOnAction(e -> mainLayout.showCheckout());
 

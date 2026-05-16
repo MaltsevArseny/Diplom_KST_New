@@ -79,7 +79,7 @@ public class AdminProductsView {
         searchField.setPromptText("🔍 Поиск по названию...");
         searchField.setPrefWidth(280);
         searchField.setStyle(
-            "-fx-background-color: #2a2a3e; -fx-text-fill: #f0f0f0; -fx-border-color: #3a3a50;" +
+            "-fx-background-color: -th-bg-card; -fx-text-fill: -th-text-primary; -fx-border-color: -th-border;" +
             "-fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 8 12; -fx-font-size: 13px;"
         );
         HBox.setHgrow(searchField, Priority.ALWAYS);
@@ -109,7 +109,7 @@ public class AdminProductsView {
         stockFilter.setOnAction(e -> applyFilter());
 
         Label countLabel = new Label();
-        countLabel.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 12px;");
+        countLabel.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
         table = new TableView<>();
         table.itemsProperty().addListener((obs, old, items) -> {
             if (items != null) countLabel.setText("Отображается: " + items.size() + " / " + allProducts.size());
@@ -130,10 +130,10 @@ public class AdminProductsView {
                     setStyle("");
                     setTooltip(null);
                 } else if (item.getStockQuantity() <= 0) {
-                    setStyle("-fx-background-color: rgba(239,68,68,0.12); -fx-text-fill: #ef4444; -fx-opacity: 0.85;");
+                    setStyle("-fx-background-color: rgba(239,68,68,0.12); -fx-text-fill: -th-danger; -fx-opacity: 0.85;");
                     setTooltip(new javafx.scene.control.Tooltip("⚠ Нет в наличии (остаток: 0)"));
                 } else if (item.getStockQuantity() <= 3) {
-                    setStyle("-fx-background-color: rgba(245,158,11,0.12); -fx-text-fill: #f59e0b;");
+                    setStyle("-fx-background-color: rgba(245,158,11,0.12); -fx-text-fill: -th-warning;");
                     setTooltip(new javafx.scene.control.Tooltip("⚠ Мало на складе (остаток: " + item.getStockQuantity() + ")"));
                 } else {
                     setStyle("");
@@ -220,20 +220,20 @@ public class AdminProductsView {
                 } else if (item <= 0) {
                     Label badge = new Label("0 ⚠");
                     badge.setStyle(
-                        "-fx-background-color: rgba(239,68,68,0.2); -fx-text-fill: #ef4444;" +
+                        "-fx-background-color: rgba(239,68,68,0.2); -fx-text-fill: -th-danger;" +
                         "-fx-font-weight: bold; -fx-padding: 2 8; -fx-background-radius: 6; -fx-font-size: 13px;"
                     );
                     setGraphic(badge); setText(null); setStyle("");
                 } else if (item <= 3) {
                     Label badge = new Label(item + " ⚠");
                     badge.setStyle(
-                        "-fx-background-color: rgba(245,158,11,0.2); -fx-text-fill: #f59e0b;" +
+                        "-fx-background-color: rgba(245,158,11,0.2); -fx-text-fill: -th-warning;" +
                         "-fx-font-weight: bold; -fx-padding: 2 8; -fx-background-radius: 6; -fx-font-size: 13px;"
                     );
                     setGraphic(badge); setText(null); setStyle("");
                 } else {
                     setText(String.valueOf(item));
-                    setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold;");
+                    setStyle("-fx-text-fill: -th-success; -fx-font-weight: bold;");
                     setGraphic(null);
                 }
             }
@@ -278,7 +278,7 @@ public class AdminProductsView {
                     deleteBtn.setOnAction(e -> {
                         // Показываем сообщение и кнопку отмены прямо в ячейке
                         Label undoMsg = new Label("Удалено");
-                        undoMsg.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+                        undoMsg.setStyle("-fx-text-fill: -th-danger; -fx-font-weight: bold;");
                         
                         Button undoBtn = new Button("↩");
                         undoBtn.getStyleClass().addAll("button", "btn-small");
@@ -373,7 +373,7 @@ public class AdminProductsView {
         }
 
         Label imgLabel = new Label(imgPath[0] != null ? getFileName(imgPath[0]) : "Фото не выбрано");
-        imgLabel.setStyle("-fx-text-fill:#a0a0b8;-fx-font-size:11px;");
+        imgLabel.setStyle("-fx-text-fill:-th-text-secondary;-fx-font-size:11px;");
         imgLabel.setWrapText(true); imgLabel.setMaxWidth(190);
 
         Button chooseImg = new Button("📷 Выбрать фото");
@@ -405,7 +405,7 @@ public class AdminProductsView {
         );
         imageBox.setAlignment(Pos.TOP_LEFT);
         imageBox.setPadding(new Insets(10));
-        imageBox.setStyle("-fx-background-color:#252538;-fx-background-radius:10;-fx-border-color:#3a3a50;-fx-border-radius:10;");
+        imageBox.setStyle("-fx-background-color:-th-bg-secondary;-fx-background-radius:10;-fx-border-color:-th-border;-fx-border-radius:10;");
 
         // ─── Сетка формы ──────────────────────────────────────────────
         GridPane grid = new GridPane();
@@ -452,8 +452,8 @@ public class AdminProductsView {
         cancelBtn.setPrefWidth(120);
         cancelBtn.setPrefHeight(38);
         cancelBtn.setStyle(
-            "-fx-background-color:#3a3a50;" +
-            "-fx-text-fill:#e2e8f0;" +
+            "-fx-background-color:-th-border;" +
+            "-fx-text-fill:-th-text-primary;" +
             "-fx-background-radius:8;" +
             "-fx-border-radius:8;" +
             "-fx-font-size:13px;" +
@@ -469,7 +469,7 @@ public class AdminProductsView {
 
         // ─── Заголовок ─────────────────────────────────────────────────
         Label title = new Label(existing == null ? "Новый товар" : "Редактирование товара");
-        title.setStyle("-fx-font-size:17px;-fx-font-weight:bold;-fx-text-fill:#e2e8f0;");
+        title.setStyle("-fx-font-size:17px;-fx-font-weight:bold;-fx-text-fill:-th-text-primary;");
 
         HBox header = new HBox(title);
         header.setAlignment(Pos.CENTER_LEFT);
@@ -502,10 +502,10 @@ public class AdminProductsView {
 
     /** Стиль полей ввода */
     private String fieldStyle() {
-        return "-fx-background-color:#252538;" +
-               "-fx-text-fill:#e2e8f0;" +
+        return "-fx-background-color:-th-bg-secondary;" +
+               "-fx-text-fill:-th-text-primary;" +
                "-fx-prompt-text-fill:#6b6b8a;" +
-               "-fx-border-color:#3a3a50;" +
+               "-fx-border-color:-th-border;" +
                "-fx-border-radius:8;" +
                "-fx-background-radius:8;" +
                "-fx-pref-height:38px;";
@@ -514,7 +514,7 @@ public class AdminProductsView {
     /** Метка колонки формы */
     private Label fieldLabel(String text) {
         Label l = new Label(text);
-        l.setStyle("-fx-text-fill:#a0a0b8;-fx-font-size:13px;");
+        l.setStyle("-fx-text-fill:-th-text-secondary;-fx-font-size:13px;");
         l.setMinWidth(140);
         return l;
     }

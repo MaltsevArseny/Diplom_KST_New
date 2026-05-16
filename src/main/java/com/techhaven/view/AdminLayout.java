@@ -24,10 +24,11 @@ public class AdminLayout {
     private BorderPane root;
     private StackPane contentArea;
     private Button productsBtn, ordersBtn, usersBtn, reportsBtn;
+    private Button themeToggleBtn;
 
     public Parent getView() {
         root = new BorderPane();
-        root.setStyle("-fx-background-color: #1e1e2e;");
+        root.getStyleClass().add("app-root");
 
         root.setTop(createTopBar());
         root.setLeft(createSidebar());
@@ -49,6 +50,7 @@ public class AdminLayout {
                 scene.getAccelerators().put(new KeyCodeCombination(KeyCode.M,     KeyCombination.ALT_DOWN), () -> MainApp.getPrimaryStage().setIconified(true));
                 scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Q,     KeyCombination.ALT_DOWN), () -> { SessionManager.getInstance().logout(); MainApp.showLogin(); });
                 scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F1),                             () -> HelpView.show("AdminManual.md", "Справка администратора"));
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.T,     KeyCombination.ALT_DOWN), () -> ThemeToggle.toggleAndApply(scene, themeToggleBtn));
             }
         });
 
@@ -65,17 +67,16 @@ public class AdminLayout {
         bar.setPadding(new Insets(10, 12, 10, 24));
 
         Label logo = new Label("DigitalHub — Панель администратора");
-        logo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #a78bfa;");
+        logo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -th-accent-light;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Label userName = new Label("👤 " + SessionManager.getInstance().getCurrentUser().getUsername());
-        userName.setStyle("-fx-text-fill: #a0a0b8;");
+        userName.setStyle("-fx-text-fill: -th-text-secondary;");
 
         Label roleBadge = new Label("ADMIN");
-        roleBadge.getStyleClass().add("badge-danger");
-        roleBadge.setStyle("-fx-background-color: rgba(239, 68, 68, 0.2); -fx-text-fill: #f87171; -fx-padding: 4 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;");
+        roleBadge.getStyleClass().add("role-badge-admin");
 
         Button logoutBtn = new Button("🚪  Выйти");
         logoutBtn.getStyleClass().addAll("btn-danger", "btn-small");
@@ -86,20 +87,13 @@ public class AdminLayout {
         });
 
         // ── Кнопки управления окном ──────────────────────────────────────
-        String winBtnBase = "-fx-background-color:transparent;-fx-text-fill:#a0a0b8;" +
-                            "-fx-font-size:14px;-fx-padding:2 10;-fx-cursor:hand;" +
-                            "-fx-background-radius:4;-fx-min-width:32;-fx-pref-width:32;";
         Button minBtn = new Button("_");
-        minBtn.setStyle(winBtnBase);
-        minBtn.setOnMouseEntered(e -> minBtn.setStyle(winBtnBase + "-fx-background-color:#2d2d48;"));
-        minBtn.setOnMouseExited(e  -> minBtn.setStyle(winBtnBase));
+        minBtn.getStyleClass().add("window-control-button");
         minBtn.setOnAction(e -> MainApp.getPrimaryStage().setIconified(true));
         minBtn.setTooltip(new Tooltip("Свернуть  [Alt+M]"));
 
         Button maxBtn = new Button("□");
-        maxBtn.setStyle(winBtnBase);
-        maxBtn.setOnMouseEntered(e -> maxBtn.setStyle(winBtnBase + "-fx-background-color:#2d2d48;"));
-        maxBtn.setOnMouseExited(e  -> maxBtn.setStyle(winBtnBase));
+        maxBtn.getStyleClass().add("window-control-button");
         maxBtn.setOnAction(e -> {
             Stage st = MainApp.getPrimaryStage();
             st.setMaximized(!st.isMaximized());
@@ -107,9 +101,7 @@ public class AdminLayout {
         maxBtn.setTooltip(new Tooltip("Развернуть / восстановить"));
 
         Button closeBtn = new Button("×");
-        closeBtn.setStyle(winBtnBase + "-fx-text-fill:#f87171;");
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle(winBtnBase + "-fx-background-color:#ef4444;-fx-text-fill:white;"));
-        closeBtn.setOnMouseExited(e  -> closeBtn.setStyle(winBtnBase + "-fx-text-fill:#f87171;"));
+        closeBtn.getStyleClass().addAll("window-control-button", "window-close-button");
         closeBtn.setOnAction(e -> MainApp.getPrimaryStage().close());
         closeBtn.setTooltip(new Tooltip("Закрыть приложение  [Alt+W]"));
 
@@ -117,13 +109,18 @@ public class AdminLayout {
         winControls.setAlignment(Pos.CENTER);
 
         Button helpBtn = new Button("❓  Справка");
-        helpBtn.setStyle("-fx-background-color: #2d2d48; -fx-text-fill: #a0d4ff; -fx-font-size: 12px; -fx-background-radius: 6; -fx-padding: 4 10; -fx-cursor: hand;");
-        helpBtn.setOnMouseEntered(e -> helpBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 6; -fx-padding: 4 10; -fx-cursor: hand;"));
-        helpBtn.setOnMouseExited(e  -> helpBtn.setStyle("-fx-background-color: #2d2d48; -fx-text-fill: #a0d4ff; -fx-font-size: 12px; -fx-background-radius: 6; -fx-padding: 4 10; -fx-cursor: hand;"));
+        helpBtn.getStyleClass().add("help-button");
         helpBtn.setTooltip(new Tooltip("Руководство администратора  [F1]"));
         helpBtn.setOnAction(e -> HelpView.show("AdminManual.md", "Справка администратора"));
 
-        bar.getChildren().addAll(logo, spacer, userName, roleBadge, helpBtn, logoutBtn, winControls);
+        // Кнопка переключения темы
+        themeToggleBtn = new Button();
+        themeToggleBtn.getStyleClass().add("theme-toggle-button");
+        themeToggleBtn.setTooltip(new Tooltip("Сменить тему  [Alt+T]"));
+        ThemeToggle.refreshIcon(themeToggleBtn);
+        themeToggleBtn.setOnAction(e -> ThemeToggle.toggleAndApply(themeToggleBtn.getScene(), themeToggleBtn));
+
+        bar.getChildren().addAll(logo, spacer, userName, roleBadge, themeToggleBtn, helpBtn, logoutBtn, winControls);
 
         // ── Перетаскивание окна за топбар ────────────────────────────────
         bar.setOnMousePressed(e -> {
@@ -157,7 +154,7 @@ public class AdminLayout {
         sidebar.setPrefWidth(240);
 
         Label menuTitle = new Label("Меню");
-        menuTitle.setStyle("-fx-text-fill: #6b6b80; -fx-font-size: 11px; -fx-font-weight: bold;");
+        menuTitle.getStyleClass().add("sidebar-menu-title");
         menuTitle.setPadding(new Insets(0, 0, 8, 8));
 
         productsBtn = new Button("🏷  Товары");

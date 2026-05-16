@@ -62,7 +62,7 @@ public class AdminUsersView {
         // ── Кнопка «Добавить администратора» ──────────────────────────
         Button addAdminBtn = new Button("🛡 Добавить администратора");
         addAdminBtn.setStyle(
-            "-fx-background-color: #7c3aed; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-background-color: -th-accent; -fx-text-fill: white; -fx-font-weight: bold;" +
             "-fx-font-size: 13px; -fx-padding: 8 16; -fx-background-radius: 8; -fx-cursor: hand;"
         );
         addAdminBtn.setTooltip(new javafx.scene.control.Tooltip("Добавить нового администратора"));
@@ -73,7 +73,7 @@ public class AdminUsersView {
         searchField.setPromptText("🔍 Поиск по имени или email...");
         searchField.setPrefWidth(260);
         searchField.setStyle(
-            "-fx-background-color: #2a2a3e; -fx-text-fill: #f0f0f0; -fx-border-color: #3a3a50;" +
+            "-fx-background-color: -th-bg-card; -fx-text-fill: -th-text-primary; -fx-border-color: -th-border;" +
             "-fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 8 12; -fx-font-size: 13px;"
         );
         HBox.setHgrow(searchField, Priority.ALWAYS);
@@ -92,7 +92,7 @@ public class AdminUsersView {
         clearBtn.setOnAction(e -> { searchField.clear(); roleFilter.setValue("Все роли"); });
 
         Label countLabel = new Label();
-        countLabel.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 12px;");
+        countLabel.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -100,14 +100,14 @@ public class AdminUsersView {
         // Статистические бейджи (активные учётные записи)
         userBadge = new Label();
         userBadge.setStyle(
-            "-fx-background-color: rgba(16,185,129,0.15); -fx-text-fill: #10b981;" +
+            "-fx-background-color: rgba(16,185,129,0.15); -fx-text-fill: -th-success;" +
             "-fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 5 12;" +
             "-fx-background-radius: 8; -fx-border-color: rgba(16,185,129,0.3);" +
             "-fx-border-radius: 8; -fx-border-width: 1;"
         );
         adminBadge = new Label();
         adminBadge.setStyle(
-            "-fx-background-color: rgba(124,58,237,0.15); -fx-text-fill: #a78bfa;" +
+            "-fx-background-color: rgba(124,58,237,0.15); -fx-text-fill: -th-accent-light;" +
             "-fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 5 12;" +
             "-fx-background-radius: 8; -fx-border-color: rgba(124,58,237,0.3);" +
             "-fx-border-radius: 8; -fx-border-width: 1;"
@@ -140,9 +140,9 @@ public class AdminUsersView {
                 boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
                 Label badge = new Label(isAdmin ? "🛡 Администратор" : "👤 Покупатель");
                 badge.setStyle(isAdmin
-                    ? "-fx-background-color: rgba(124,58,237,0.18); -fx-text-fill: #a78bfa;" +
+                    ? "-fx-background-color: rgba(124,58,237,0.18); -fx-text-fill: -th-accent-light;" +
                       "-fx-font-weight: bold; -fx-padding: 2 8; -fx-background-radius: 6; -fx-font-size: 13px;"
-                    : "-fx-background-color: rgba(16,185,129,0.12); -fx-text-fill: #10b981;" +
+                    : "-fx-background-color: rgba(16,185,129,0.12); -fx-text-fill: -th-success;" +
                       "-fx-padding: 2 8; -fx-background-radius: 6; -fx-font-size: 13px;");
                 setGraphic(badge); setText(null);
             }
@@ -163,7 +163,7 @@ public class AdminUsersView {
                 setText(name);
                 setStyle(isAdmin
                     ? "-fx-font-weight: bold; -fx-text-fill: #c4b5fd;"
-                    : "-fx-text-fill: #f0f0f0;");
+                    : "-fx-text-fill: -th-text-primary;");
             }
         });
 
@@ -179,7 +179,7 @@ public class AdminUsersView {
                 User u = getTableView().getItems().get(getIndex());
                 boolean isAdmin = u != null && "ADMIN".equalsIgnoreCase(u.getRole());
                 setText(isAdmin ? val : maskEmail(val));
-                setStyle(isAdmin ? "-fx-text-fill: #f0f0f0;" : "-fx-text-fill: #6b7280;");
+                setStyle(isAdmin ? "-fx-text-fill: -th-text-primary;" : "-fx-text-fill: -th-text-muted;");
             }
         });
 
@@ -195,7 +195,7 @@ public class AdminUsersView {
                 User u = getTableView().getItems().get(getIndex());
                 boolean isAdmin = u != null && "ADMIN".equalsIgnoreCase(u.getRole());
                 setText(isAdmin ? val : maskPhone(val));
-                setStyle(isAdmin ? "-fx-text-fill: #f0f0f0;" : "-fx-text-fill: #6b7280;");
+                setStyle(isAdmin ? "-fx-text-fill: -th-text-primary;" : "-fx-text-fill: -th-text-muted;");
             }
         });
 
@@ -255,8 +255,8 @@ public class AdminUsersView {
                 boolean blocked = lock != null && !lock.isEmpty();
                 Label lbl = new Label(blocked ? "🔒 Заблок." : "✅ Активен");
                 lbl.setStyle(blocked
-                    ? "-fx-text-fill: #ef4444; -fx-font-size: 13px;"
-                    : "-fx-text-fill: #10b981; -fx-font-size: 13px;");
+                    ? "-fx-text-fill: -th-danger; -fx-font-size: 13px;"
+                    : "-fx-text-fill: -th-success; -fx-font-size: 13px;");
                 setGraphic(lbl); setText(null);
             }
         });
@@ -281,13 +281,13 @@ public class AdminUsersView {
 
                 // hover-эффекты
                 unlockBtn.setOnMouseEntered(e -> unlockBtn.setStyle(baseStyle +
-                    "-fx-background-color: #10b981; -fx-text-fill: white;"));
+                    "-fx-background-color: -th-success; -fx-text-fill: white;"));
                 unlockBtn.setOnMouseExited(e -> {
                     if (!unlockBtn.isDisabled())
                         unlockBtn.setStyle(baseStyle + "-fx-background-color: #059669; -fx-text-fill: white;");
                 });
                 lockBtn.setOnMouseEntered(e -> lockBtn.setStyle(baseStyle +
-                    "-fx-background-color: #ef4444; -fx-text-fill: white;"));
+                    "-fx-background-color: -th-danger; -fx-text-fill: white;"));
                 lockBtn.setOnMouseExited(e -> {
                     if (!lockBtn.isDisabled())
                         lockBtn.setStyle(baseStyle + "-fx-background-color: #dc2626; -fx-text-fill: white;");
@@ -308,7 +308,7 @@ public class AdminUsersView {
                     "-fx-font-size: 16px; -fx-padding: 4 8;" +
                     "-fx-background-radius: 7; -fx-cursor: hand;";
                 String disabledStyle = baseStyle +
-                    "-fx-background-color: #3a3a50; -fx-text-fill: #6b7280; -fx-opacity: 0.6;";
+                    "-fx-background-color: -th-border; -fx-text-fill: -th-text-muted; -fx-opacity: 0.6;";
 
                 unlockBtn.setDisable(!isLocked || isSelf);
                 lockBtn.setDisable(isLocked || isSelf);
@@ -375,23 +375,23 @@ public class AdminUsersView {
         Label title = new Label("🔒 Блокировка пользователя");
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #f87171;");
         Label who = new Label("👤 " + user.getUsername() + "   " + maskEmail(user.getEmail()));
-        who.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 12px;");
+        who.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
 
         Region closeSpc = new Region(); HBox.setHgrow(closeSpc, Priority.ALWAYS);
         Button closeBtn = new Button("×");
         closeBtn.setTooltip(new javafx.scene.control.Tooltip("Закрыть"));
-        closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #6b6b80; -fx-font-size: 16px; -fx-cursor: hand;");
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #ef4444; -fx-font-size: 16px; -fx-cursor: hand;"));
-        closeBtn.setOnMouseExited(e  -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #6b6b80; -fx-font-size: 16px; -fx-cursor: hand;"));
+        closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand;");
+        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-danger; -fx-font-size: 16px; -fx-cursor: hand;"));
+        closeBtn.setOnMouseExited(e  -> closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-text-muted; -fx-font-size: 16px; -fx-cursor: hand;"));
         closeBtn.setOnAction(e -> dlg.close());
         HBox titleBar = new HBox(8, title, closeSpc, closeBtn);
         titleBar.setAlignment(Pos.CENTER_LEFT);
 
         Region divider = new Region(); divider.setPrefHeight(1);
-        divider.setStyle("-fx-background-color: #3a3a50;");
+        divider.setStyle("-fx-background-color: -th-border;");
 
         Label reasonLbl = new Label("Причина блокировки");
-        reasonLbl.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 12px;");
+        reasonLbl.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
         TextField reasonField = new TextField();
         reasonField.setPromptText("Например: Нарушение правил пользования (необязательно)");
 
@@ -446,7 +446,7 @@ public class AdminUsersView {
         javafx.scene.control.Control[] fields = {nameField, emailField, phoneField, passField, pass2Field};
         for (int i = 0; i < labelTexts.length; i++) {
             Label lbl = new Label(labelTexts[i]);
-            lbl.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: 12px;");
+            lbl.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: 12px;");
             lbl.setMinWidth(140);
             grid.add(lbl,    0, i);
             grid.add(fields[i], 1, i);
@@ -473,24 +473,24 @@ public class AdminUsersView {
 
         // ── Заголовок ──────────────────────────────────────────────────
         Label title = new Label("🛡 Новый администратор");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #a78bfa;");
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -th-accent-light;");
         Label subtitle = new Label("Заполните данные для создания аккаунта");
-        subtitle.setStyle("-fx-text-fill: #6b6b80; -fx-font-size: 12px;");
+        subtitle.setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 12px;");
 
         Region closeSpacer = new Region();
         HBox.setHgrow(closeSpacer, Priority.ALWAYS);
         Button closeBtn = new Button("×");
         closeBtn.setTooltip(new javafx.scene.control.Tooltip("Закрыть"));
         closeBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #6b6b80;" +
+            "-fx-background-color: transparent; -fx-text-fill: -th-text-muted;" +
             "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 0 4;"
         );
         closeBtn.setOnMouseEntered(e -> closeBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #ef4444;" +
+            "-fx-background-color: transparent; -fx-text-fill: -th-danger;" +
             "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 0 4;"
         ));
         closeBtn.setOnMouseExited(e -> closeBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #6b6b80;" +
+            "-fx-background-color: transparent; -fx-text-fill: -th-text-muted;" +
             "-fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 0 4;"
         ));
         closeBtn.setOnAction(e -> dlg.close());
@@ -501,7 +501,7 @@ public class AdminUsersView {
         // Разделитель
         Region divider = new Region();
         divider.setPrefHeight(1);
-        divider.setStyle("-fx-background-color: #3a3a50;");
+        divider.setStyle("-fx-background-color: -th-border;");
 
         // ── Корневой контейнер ─────────────────────────────────────────
         VBox card = new VBox(16, titleBar, subtitle, divider, grid, errorLabel, btnRow);
@@ -510,8 +510,8 @@ public class AdminUsersView {
         card.getChildren().add(4, errorLabel);
         card.setPadding(new Insets(24));
         card.setStyle(
-            "-fx-background-color: #1e1e2e; -fx-background-radius: 14;" +
-            "-fx-border-color: #3a3a50; -fx-border-radius: 14; -fx-border-width: 1;" +
+            "-fx-background-color: -th-bg-primary; -fx-background-radius: 14;" +
+            "-fx-border-color: -th-border; -fx-border-radius: 14; -fx-border-width: 1;" +
             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 24, 0, 0, 8);"
         );
         card.setPrefWidth(480);

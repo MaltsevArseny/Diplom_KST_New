@@ -73,7 +73,7 @@ public class OrdersView {
         HBox.setHgrow(sp, Priority.ALWAYS);
 
         Label filterLabel = new Label("Фильтр:");
-        filterLabel.setStyle("-fx-text-fill: #a0a0b8;");
+        filterLabel.setStyle("-fx-text-fill: -th-text-secondary;");
         
         ComboBox<String> statusFilter = new ComboBox<>(FXCollections.observableArrayList(ALL_STATUSES));
         statusFilter.setValue("Все");
@@ -180,7 +180,7 @@ public class OrdersView {
                 Button showMore = new Button("Показать ещё (" + (groupOrders.size() - initialCount) + ")");
                 showMore.getStyleClass().add("btn-secondary");
                 showMore.setMaxWidth(Double.MAX_VALUE);
-                showMore.setStyle("-fx-background-color: #2a2a3e; -fx-text-fill: " + accent + "; -fx-cursor: hand; -fx-padding: 6;");
+                showMore.setStyle("-fx-background-color: -th-bg-card; -fx-text-fill: " + accent + "; -fx-cursor: hand; -fx-padding: 6;");
 
                 showMore.setOnAction(e -> {
                     int nextBatch = Math.min(loaded[0] + PAGE_SIZE, groupOrders.size());
@@ -224,7 +224,7 @@ public class OrdersView {
             header.setAlignment(Pos.CENTER_LEFT);
 
             Label orderNum = new Label("#" + order.getId());
-            orderNum.setStyle("-fx-font-size: " + bf + "px; -fx-font-weight: bold; -fx-text-fill: #f0f0f0;");
+            orderNum.setStyle("-fx-font-size: " + bf + "px; -fx-font-weight: bold; -fx-text-fill: -th-text-primary;");
 
             Label statusBadge = new Label(order.getStatus());
             statusBadge.setStyle(statusBadgeStyle(order.getStatus()) + "-fx-font-size: " + sf + "px; -fx-padding: 2 5;");
@@ -233,23 +233,23 @@ public class OrdersView {
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
             Label dateLabel = new Label(formatDateStr(order.getOrderDate()));
-            dateLabel.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: " + sf + "px;");
+            dateLabel.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: " + sf + "px;");
 
             header.getChildren().addAll(orderNum, statusBadge, spacer, dateLabel);
 
             // Инфо-блок доставки
             VBox deliveryInfo = new VBox(2);
-            deliveryInfo.setStyle("-fx-background-color: #2a2a3e; -fx-padding: 4; -fx-background-radius: 4;");
+            deliveryInfo.setStyle("-fx-background-color: -th-bg-card; -fx-padding: 4; -fx-background-radius: 4;");
 
             Label deliveryTitle = new Label("📍 Доставка");
-            deliveryTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #a78bfa; -fx-font-size: " + bf + "px;");
+            deliveryTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: -th-accent-light; -fx-font-size: " + bf + "px;");
 
             Label addrLbl = new Label(order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "—");
-            addrLbl.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: " + bf + "px;");
+            addrLbl.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: " + bf + "px;");
             addrLbl.setWrapText(true);
 
             Label phoneLbl = new Label(order.getContactPhone() != null ? order.getContactPhone() : "—");
-            phoneLbl.setStyle("-fx-text-fill: #a0a0b8; -fx-font-size: " + bf + "px;");
+            phoneLbl.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: " + bf + "px;");
 
             deliveryInfo.getChildren().addAll(deliveryTitle, addrLbl, phoneLbl);
 
@@ -265,19 +265,19 @@ public class OrdersView {
                 String pDate = formatDateStr(order.getPlannedDeliveryDate());
                 String pTime = order.getPlannedDeliveryInterval() != null ? order.getPlannedDeliveryInterval() : "";
                 Label plannedValue = new Label("🗓 " + pDate + " " + pTime);
-                plannedValue.setStyle("-fx-text-fill: #10b981; -fx-font-size: " + bf + "px; -fx-font-weight: bold;");
+                plannedValue.setStyle("-fx-text-fill: -th-success; -fx-font-size: " + bf + "px; -fx-font-weight: bold;");
                 deliveryInfo.getChildren().add(plannedValue);
             }
 
             // Итого
             Label total = new Label(order.getFormattedTotal());
-            total.setStyle("-fx-font-size: " + tf + "px; -fx-font-weight: bold; -fx-text-fill: #10b981;");
+            total.setStyle("-fx-font-size: " + tf + "px; -fx-font-weight: bold; -fx-text-fill: -th-success;");
 
             // Позиции
             TitledPane itemsPane = new TitledPane();
             itemsPane.setText("Состав заказа");
             itemsPane.setExpanded(false);
-            itemsPane.setStyle("-fx-text-fill: #a0a0b8;");
+            itemsPane.setStyle("-fx-text-fill: -th-text-secondary;");
 
             VBox itemsBox = new VBox(8);
             List<OrderItem> items = orderService.getOrderItems(order.getId());
@@ -290,13 +290,13 @@ public class OrdersView {
                 itemLink.setOnAction(e -> mainLayout.showProductDetail(item.getProductId()));
                 
                 Label qtyLbl = new Label(" × " + item.getQuantity());
-                qtyLbl.setStyle("-fx-text-fill: #a0a0b8;");
+                qtyLbl.setStyle("-fx-text-fill: -th-text-secondary;");
                 
                 Region sp = new Region();
                 HBox.setHgrow(sp, Priority.ALWAYS);
                 
                 Label subtotal = new Label(item.getFormattedSubtotal());
-                subtotal.setStyle("-fx-text-fill: #f0f0f0; -fx-font-weight: bold;");
+                subtotal.setStyle("-fx-text-fill: -th-text-primary; -fx-font-weight: bold;");
                 
                 row.getChildren().addAll(itemLink, qtyLbl, sp, subtotal);
                 itemsBox.getChildren().add(row);
@@ -371,7 +371,7 @@ public class OrdersView {
                                 formatted = ldt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
                             } catch (Exception ignored) {}
                             Label dateLbl = new Label(formatted);
-                            dateLbl.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11px;");
+                            dateLbl.setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 11px;");
                             stepTextBox.getChildren().add(dateLbl);
                         }
                     });
@@ -391,7 +391,7 @@ public class OrdersView {
                 if (si < path.size() - 1) {
                     Label line = new Label("");
                     line.setStyle(
-                        "-fx-border-color: " + (si < currentIdx ? "#10b981" : "#3a3a50") + ";" +
+                        "-fx-border-color: " + (si < currentIdx ? "-th-success" : "-th-border") + ";" +
                         "-fx-border-width: 0 0 0 2; -fx-min-height: 12; -fx-padding: 0 0 0 19;"
                     );
                     historyBox.getChildren().add(line);

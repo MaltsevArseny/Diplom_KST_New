@@ -13,13 +13,14 @@ DigitalHub — автономное desktop-приложение для прод
 
 | Параметр | Значение |
 |---|---|
-| Версия | 3.1 |
+| Версия | 3.2 |
 | Платформа | Windows 10/11, Linux, macOS (Java cross-platform) |
 | Java | 21 LTS (OpenJDK / Temurin) |
 | UI-фреймворк | JavaFX 21.0.5 |
 | БД | SQLite 3 (через JDBC), схема в 3НФ |
 | Сборка | Apache Maven 3.8+ |
 | Паттерн | MVVM (Model–View–ViewModel) |
+| Темизация | Dark / Light, runtime-переключение `Alt+T` |
 | Артефакт сборки | `dist/DigitalHub.jar` (FAT JAR) |
 | История изменений | [CHANGELOG.md](docs/CHANGELOG.md) |
 
@@ -36,7 +37,8 @@ Diplom_KST_New/
 │   ├── config/
 │   │   ├── DatabaseManager.java  # Singleton: инициализация схемы, сидирование, миграции
 │   │   ├── SeedProducts.java     # Генератор каталога 500 товаров
-│   │   └── SessionManager.java   # Singleton: текущий авторизованный пользователь
+│   │   ├── SessionManager.java   # Singleton: текущий авторизованный пользователь
+│   │   └── ThemeManager.java     # Singleton: dark/light тема, persist (Preferences), listener-API
 │   ├── security/
 │   │   └── SecurityManager.java  # PBKDF2 хеш/верификация, AES-256-CBC шифрование PII, валидация
 │   ├── repository/               # Слой доступа к данным (JDBC + PreparedStatement)
@@ -55,13 +57,16 @@ Diplom_KST_New/
 │       ├── MainLayout.java       # Навбар + контент-область (пользователь)
 │       ├── AdminLayout.java      # Топбар + сайдбар + контент-область (администратор)
 │       ├── DialogHelper.java     # Утилита: стилизованные диалоги, Tooltip, стили
+│       ├── ThemeToggle.java      # Утилита: кнопка переключения темы (☀/🌙)
 │       ├── HelpView.java         # Встроенная справка (Markdown → JavaFX рендер)
 │       ├── LoginView.java / RegisterView.java
 │       ├── CatalogView.java / CartView.java / FavoritesView.java
 │       ├── CheckoutView.java / OrdersView.java / ProfileView.java
 │       └── Admin*.java           # AdminProductsView, AdminOrdersView, AdminUsersView, AdminReportsView
 ├── src/main/resources/
-│   └── styles/dark-theme.css     # Единственный CSS для JavaFX сцен
+│   └── styles/
+│       ├── dark-theme.css        # Тёмная тема (default)
+│       └── light-theme.css       # Светлая тема
 ├── dist/
 │   ├── DigitalHub.jar            # FAT JAR (генерируется при сборке)
 │   ├── digitalhub.db             # Единственная БД приложения
@@ -245,6 +250,62 @@ java -Ddb.path=dist/digitalhub.db -jar dist/DigitalHub.jar
 | Оба | `Alt+Q` | Выход из аккаунта |
 | Оба | `Alt+M` | Свернуть окно |
 | Оба | `Alt+W` | Закрыть приложение |
+| Оба | `Alt+T` | Переключить тему (тёмная ↔ светлая) |
+
+---
+
+## 7.bis. Темизация (Dark / Light)
+
+Приложение поддерживает две темы оформления с переключением «на лету» без перезапуска.
+
+### Компоненты темизации
+
+| Компонент | Файл | Назначение |
+|---|---|---|
+| `ThemeManager` | `config/ThemeManager.java` | Singleton: хранит активную тему, persist в `Preferences`, listener-API, метод `applyTo(Scene)` |
+| `ThemeToggle` | `view/ThemeToggle.java` | Утилита: создание кнопки-переключателя, обновление иконки `☀ / 🌙` |
+| `dark-theme.css` | `resources/styles/dark-theme.css` | Тёмная палитра (default) |
+| `light-theme.css` | `resources/styles/light-theme.css` | Светлая палитра (зеркало dark) |
+
+### Где переключать тему
+
+- **Кнопка** `☀ Светлая` / `🌙 Тёмная` в навбаре пользователя, топбаре администратора, окне логина.
+- **Hot-key** `Alt+T` из любого экрана.
+
+### Persist
+
+Выбор сохраняется в `java.util.prefs.Preferences` — узел `com/techhaven`, ключ `ui.theme`. Не зависит от рабочей директории и переживает переустановку приложения (хранится в реестре Windows / `~/.java/.userPrefs` на Linux).
+
+Default при первом запуске — `DARK` (поведение совместимо с версиями до 3.2).
+
+### CSS-переменные
+
+Темы определяют единый набор переменных в `.root { ... }`. Переменные доступны как из CSS-селекторов, так и из inline-`setStyle("-fx-...: -th-bg-primary;")`:
+
+```css
+-th-bg-primary    /* основной фон */
+-th-bg-secondary  /* навбар, sidebar */
+-th-bg-card       /* карточки, поля ввода */
+-th-bg-hover      /* hover-состояния */
+-th-accent        /* акцентный фиолетовый */
+-th-accent-light  /* светлый акцент (логотип, badge) */
+-th-text-primary  /* основной текст */
+-th-text-secondary /* приглушённый текст */
+-th-text-muted    /* подсказки, плейсхолдеры */
+-th-border        /* рамки полей */
+-th-success / -th-warning / -th-danger
+```
+
+### Добавить новую тему
+
+1. Создать `src/main/resources/styles/<name>-theme.css` (копия dark с другими значениями переменных в `.root`).
+2. Добавить элемент `<NAME>("/styles/<name>-theme.css")` в `ThemeManager.Theme`.
+3. При необходимости расширить `Theme.opposite()` логику циклического обхода.
+4. Обновить тест `cssResourcesExist()` в `ThemeManagerTest`.
+
+### Ограничения
+
+В коде сохраняется ~40 inline-`setStyle("...#RRGGBB...")` — это семантические цвета (статусы заказов в `AdminOrdersView.statusColor()`, цвета аватаров, акценты-уведомления). Они константны между темами по дизайн-замыслу: статус «Доставлен» зелёный в обеих темах.
 
 ---
 
@@ -263,8 +324,8 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 |---|---|
 | Фреймворк | JUnit 5 (junit-jupiter 5.10.2) |
 | Покрытие | JaCoCo 0.8.13 (`mvn verify` → `target/site/jacoco/index.html`) |
-| Тестовых классов | 27 |
-| Тестов всего | 247 |
+| Тестовых классов | 28 |
+| Тестов всего | 261 |
 | Результат | BUILD SUCCESS |
 
 ### Покрытие по пакетам (JaCoCo)
@@ -311,6 +372,7 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 | `FavoriteService` | 4 | getFavorites, getFavoriteCount, isFavorite, addAndRemove |
 | `UndoService` | 8 | Singleton, isPendingDeletion, forceExecute, undo |
 | `ButtonTooltip` | 1 | CSS-стили для Tooltip |
+| `ThemeManager` | 14 | Singleton, default DARK, set/get, toggle, persist (Preferences), listener add/remove/notify, CSS-resource existence |
 
 ### Запуск через surefire-plugin
 
@@ -351,3 +413,4 @@ mvn verify           # тесты + JaCoCo-отчёт покрытия
 - **Новая категория товаров**: добавить запись в `seedCategories()` в `DatabaseManager` и обновить `categoryColors()` в `CatalogView.java` / `CartView.java` / `FavoritesView.java`
 - **Обновление справки**: отредактировать `UserManual.md` или `AdminManual.md` — изменения применяются без пересборки
 - **Смена пути к БД**: передать `-Ddb.path=<путь>` при запуске `java -jar`
+- **Новая цветовая тема**: см. раздел [7.bis. Темизация](#7bis-темизация-dark--light) — `src/main/resources/styles/<name>-theme.css` + новое значение `ThemeManager.Theme`
