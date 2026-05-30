@@ -4,12 +4,14 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.techhaven.model.Order;
 import com.techhaven.model.OrderItem;
 import com.techhaven.model.OrderStatusHistory;
 import com.techhaven.service.OrderService;
+import com.techhaven.view.component.OrderReceiptPane;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -20,6 +22,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TitledPane;
+import javafx.scene.Node;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -32,34 +35,20 @@ public class OrdersView {
     private VBox ordersList;
 
     private static final String[] ALL_STATUSES = {
-        "Все", "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён", "Отменён"
+        "Все", "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Выдан", "Завершён", "Отменён"
     };
 
     private static final List<String> STATUS_ORDER = List.of(
-        "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён", "Отменён"
+        "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Выдан", "Завершён", "Отменён"
     );
 
     private static final int PAGE_SIZE = 10;
-
-    /** Количество колонок карточек и базовый размер шрифта — вычисляются по ширине экрана */
-    private int cardColumns;
-    private int baseFontSize;
-
-    private void calcResponsiveParams() {
-        double screenW = javafx.stage.Screen.getPrimary().getBounds().getWidth();
-        if (screenW >= 1920) { cardColumns = 5; baseFontSize = 12; }
-        else if (screenW >= 1600) { cardColumns = 4; baseFontSize = 12; }
-        else if (screenW >= 1280) { cardColumns = 4; baseFontSize = 11; }
-        else if (screenW >= 1024) { cardColumns = 3; baseFontSize = 11; }
-        else { cardColumns = 3; baseFontSize = 10; }
-    }
 
     public OrdersView(MainLayout mainLayout) {
         this.mainLayout = mainLayout;
     }
 
     public Parent getView() {
-        calcResponsiveParams();
         VBox root = new VBox(16);
         root.setPadding(new Insets(20));
 
@@ -143,7 +132,7 @@ public class OrdersView {
         for (Map.Entry<String, List<Order>> entry : grouped.entrySet()) {
             String status = entry.getKey();
             List<Order> groupOrders = entry.getValue();
-            String accent = statusAccentColor(status);
+            String accent = OrderUiSupport.statusColor(status);
 
             TitledPane section = new TitledPane();
             section.setText(status.toUpperCase() + " (" + groupOrders.size() + ")");
@@ -163,13 +152,7 @@ public class OrdersView {
             // Ленивая подгрузка: первые PAGE_SIZE карточек
             int initialCount = Math.min(PAGE_SIZE, groupOrders.size());
             for (int i = 0; i < initialCount; i++) {
-                VBox card = createOrderCard(groupOrders.get(i));
-                card.prefWidthProperty().bind(
-                    cardsPane.widthProperty().subtract((cardColumns - 1) * 6 + 6).divide(cardColumns)
-                );
-                card.setMaxWidth(Double.MAX_VALUE);
-                card.setStyle(card.getStyle() + "-fx-border-color: " + accent + " transparent transparent transparent; -fx-border-width: 3 0 0 0;");
-                cardsPane.getChildren().add(card);
+                addOrderCard(cardsPane, groupOrders.get(i), accent);
             }
 
             sectionContent.getChildren().add(cardsPane);
@@ -185,13 +168,7 @@ public class OrdersView {
                 showMore.setOnAction(e -> {
                     int nextBatch = Math.min(loaded[0] + PAGE_SIZE, groupOrders.size());
                     for (int i = loaded[0]; i < nextBatch; i++) {
-                        VBox card = createOrderCard(groupOrders.get(i));
-                        card.prefWidthProperty().bind(
-                            cardsPane.widthProperty().subtract((cardColumns - 1) * 6 + 6).divide(cardColumns)
-                        );
-                        card.setMaxWidth(Double.MAX_VALUE);
-                        card.setStyle(card.getStyle() + "-fx-border-color: " + accent + " transparent transparent transparent; -fx-border-width: 3 0 0 0;");
-                        cardsPane.getChildren().add(card);
+                        addOrderCard(cardsPane, groupOrders.get(i), accent);
                     }
                     loaded[0] = nextBatch;
                     int remaining = groupOrders.size() - loaded[0];
@@ -210,8 +187,20 @@ public class OrdersView {
         }
     }
 
+    private void addOrderCard(FlowPane cardsPane, Order order, String accent) {
+        VBox card = createOrderCard(order);
+        card.prefWidthProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(
+            () -> OrderUiSupport.cardWidthForContainer(cardsPane.getWidth()),
+            cardsPane.widthProperty()
+        ));
+        card.setMaxWidth(Double.MAX_VALUE);
+        card.setStyle(card.getStyle() + "-fx-border-color: " + accent
+            + " transparent transparent transparent; -fx-border-width: 3 0 0 0;");
+        cardsPane.getChildren().add(card);
+    }
+
     private VBox createOrderCard(Order order) {
-            int bf = baseFontSize;
+            int bf = OrderUiSupport.ORDER_CARD_BASE_FONT_SIZE;
             int sf = bf - 1; // мелкий
             int tf = bf + 1; // крупный
 
@@ -227,12 +216,13 @@ public class OrdersView {
             orderNum.setStyle("-fx-font-size: " + bf + "px; -fx-font-weight: bold; -fx-text-fill: -th-text-primary;");
 
             Label statusBadge = new Label(order.getStatus());
-            statusBadge.setStyle(statusBadgeStyle(order.getStatus()) + "-fx-font-size: " + sf + "px; -fx-padding: 2 5;");
+            statusBadge.setStyle(OrderUiSupport.statusBadgeStyle(order.getStatus())
+                + "-fx-font-size: " + sf + "px; -fx-padding: 2 5;");
 
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
-            Label dateLabel = new Label(formatDateStr(order.getOrderDate()));
+            Label dateLabel = new Label(OrderUiSupport.formatDate(order.getOrderDate()));
             dateLabel.setStyle("-fx-text-fill: -th-text-secondary; -fx-font-size: " + sf + "px;");
 
             header.getChildren().addAll(orderNum, statusBadge, spacer, dateLabel);
@@ -262,7 +252,7 @@ public class OrdersView {
 
             // Ожидаемая дата от администратора
             if (order.getPlannedDeliveryDate() != null || order.getPlannedDeliveryInterval() != null) {
-                String pDate = formatDateStr(order.getPlannedDeliveryDate());
+                String pDate = OrderUiSupport.formatDate(order.getPlannedDeliveryDate());
                 String pTime = order.getPlannedDeliveryInterval() != null ? order.getPlannedDeliveryInterval() : "";
                 Label plannedValue = new Label("🗓 " + pDate + " " + pTime);
                 plannedValue.setStyle("-fx-text-fill: -th-success; -fx-font-size: " + bf + "px; -fx-font-weight: bold;");
@@ -273,49 +263,73 @@ public class OrdersView {
             Label total = new Label(order.getFormattedTotal());
             total.setStyle("-fx-font-size: " + tf + "px; -fx-font-weight: bold; -fx-text-fill: -th-success;");
 
-            // Позиции
-            TitledPane itemsPane = new TitledPane();
-            itemsPane.setText("Состав заказа");
-            itemsPane.setExpanded(false);
-            itemsPane.setStyle("-fx-text-fill: -th-text-secondary;");
+            TitledPane receiptPane = new TitledPane();
+            receiptPane.setText("Данные для получения");
+            receiptPane.setExpanded(false);
+            receiptPane.setStyle("-fx-text-fill: -th-text-secondary;");
+            receiptPane.setContent(OrderReceiptPane.create(order, true));
 
-            VBox itemsBox = new VBox(8);
-            List<OrderItem> items = orderService.getOrderItems(order.getId());
-            for (OrderItem item : items) {
-                HBox row = new HBox(10);
-                row.setAlignment(Pos.CENTER_LEFT);
-                
-                Button itemLink = new Button(item.getProductName());
-                itemLink.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-accent; -fx-cursor: hand; -fx-padding: 0; -fx-underline: true;");
-                itemLink.setOnAction(e -> mainLayout.showProductDetail(item.getProductId()));
-                
-                Label qtyLbl = new Label(" × " + item.getQuantity());
-                qtyLbl.setStyle("-fx-text-fill: -th-text-secondary;");
-                
-                Region sp = new Region();
-                HBox.setHgrow(sp, Priority.ALWAYS);
-                
-                Label subtotal = new Label(item.getFormattedSubtotal());
-                subtotal.setStyle("-fx-text-fill: -th-text-primary; -fx-font-weight: bold;");
-                
-                row.getChildren().addAll(itemLink, qtyLbl, sp, subtotal);
-                itemsBox.getChildren().add(row);
-            }
-            itemsPane.setContent(itemsBox);
+            // Позиции
+            TitledPane itemsPane = createLazyPane("Состав заказа", () -> createItemsBox(order.getId()));
 
             // История статусов — прогресс-трекер
-            TitledPane historyPane = new TitledPane();
-            historyPane.setText("История статусов");
-            historyPane.setExpanded(false);
+            TitledPane historyPane = createLazyPane("История статусов", () -> createHistoryBox(order));
 
+            card.getChildren().addAll(header, deliveryInfo, total, receiptPane, itemsPane, historyPane);
+            return card;
+    }
+
+    private TitledPane createLazyPane(String title, Supplier<Node> contentFactory) {
+        TitledPane pane = new TitledPane();
+        pane.setText(title);
+        pane.setExpanded(false);
+        pane.setStyle("-fx-text-fill: -th-text-secondary;");
+
+        final boolean[] loaded = {false};
+        pane.expandedProperty().addListener((obs, wasExpanded, expanded) -> {
+            if (expanded && !loaded[0]) {
+                pane.setContent(contentFactory.get());
+                loaded[0] = true;
+            }
+        });
+        return pane;
+    }
+
+    private VBox createItemsBox(int orderId) {
+        VBox itemsBox = new VBox(8);
+        List<OrderItem> items = orderService.getOrderItems(orderId);
+        for (OrderItem item : items) {
+            HBox row = new HBox(10);
+            row.setAlignment(Pos.CENTER_LEFT);
+
+            Button itemLink = new Button(item.getProductName());
+            itemLink.setStyle("-fx-background-color: transparent; -fx-text-fill: -th-accent; -fx-cursor: hand; -fx-padding: 0; -fx-underline: true;");
+            itemLink.setOnAction(e -> mainLayout.showProductDetail(item.getProductId()));
+
+            Label qtyLbl = new Label(" × " + item.getQuantity());
+            qtyLbl.setStyle("-fx-text-fill: -th-text-secondary;");
+
+            Region sp = new Region();
+            HBox.setHgrow(sp, Priority.ALWAYS);
+
+            Label subtotal = new Label(item.getFormattedSubtotal());
+            subtotal.setStyle("-fx-text-fill: -th-text-primary; -fx-font-weight: bold;");
+
+            row.getChildren().addAll(itemLink, qtyLbl, sp, subtotal);
+            itemsBox.getChildren().add(row);
+        }
+        return itemsBox;
+    }
+
+    private VBox createHistoryBox(Order order) {
             List<OrderStatusHistory> history = orderService.getStatusHistory(order.getId());
             String currentStatus = order.getStatus();
             boolean isCancelled = "Отменён".equals(currentStatus);
 
             // Выбираем путь: стандартный или «Отменен»
             List<String> path = isCancelled
-                ? List.of("Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён", "Отменён")
-                : List.of("Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён");
+                ? List.of("Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Выдан", "Завершён", "Отменён")
+                : List.of("Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Выдан", "Завершён");
 
             int currentIdx = path.indexOf(currentStatus);
 
@@ -358,18 +372,7 @@ public class OrdersView {
                     .findFirst()
                     .ifPresent(h -> {
                         if (h.getChangedAt() != null) {
-                            // Форматируем дату: dd.MM.yyyy HH:mm
-                            String raw = h.getChangedAt(); // "2025-02-28T13:45:00" или "2025-02-28 13:45:00"
-                            String formatted = raw;
-                            try {
-                                // Единый парсинг: поддерживаем оба формата
-                                String normalized = raw.replace("T", " ").replaceAll("\\.\\d+$", "");
-                                java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(
-                                    normalized,
-                                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                );
-                                formatted = ldt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
-                            } catch (Exception ignored) {}
+                            String formatted = OrderUiSupport.formatDateTime(h.getChangedAt());
                             Label dateLbl = new Label(formatted);
                             dateLbl.setStyle("-fx-text-fill: -th-text-muted; -fx-font-size: 11px;");
                             stepTextBox.getChildren().add(dateLbl);
@@ -397,43 +400,7 @@ public class OrdersView {
                     historyBox.getChildren().add(line);
                 }
             }
-            historyPane.setContent(historyBox);
-
-            card.getChildren().addAll(header, deliveryInfo, total, itemsPane, historyPane);
-            return card;
+            return historyBox;
     }
 
-    /** Цвет акцента для каждого статуса заказа */
-    private String statusAccentColor(String status) {
-        if (status == null) return "#a0a0b8";
-        return switch (status) {
-            case "Новый"         -> "#3b82f6"; // blue
-            case "В обработке"   -> "#f97316"; // orange
-            case "Подтверждён"   -> "#a855f7"; // purple
-            case "Собран"        -> "#eab308"; // yellow
-            case "Отправлен"     -> "#ec4899"; // pink
-            case "Доставлен"     -> "#22c55e"; // green
-            case "Завершён"      -> "#14b8a6"; // teal
-            case "Отменён"       -> "#ef4444"; // red
-            default              -> "#a0a0b8";
-        };
-    }
-
-    /** Инлайн-стиль бейджа статуса заказа (единый с AdminOrdersView) */
-    private String statusBadgeStyle(String status) {
-        String color = statusAccentColor(status);
-        return "-fx-background-color: " + color + "; -fx-text-fill: -th-cream;" +
-               "-fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 2 8; -fx-font-size: 13px; ";
-    }
-
-    /** Форматирует строку даты из БД (yyyy-MM-dd...) в dd.MM.yyyy */
-    private static String formatDateStr(String raw) {
-        if (raw == null || raw.isEmpty()) return "—";
-        try {
-            java.time.LocalDate d = java.time.LocalDate.parse(raw.substring(0, Math.min(10, raw.length())));
-            return d.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        } catch (Exception e) {
-            return raw;
-        }
-    }
 }

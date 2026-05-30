@@ -13,13 +13,13 @@ DigitalHub — автономное desktop-приложение для прод
 
 | Параметр | Значение |
 |---|---|
-| Версия | 3.3.0 (2026-05-16) |
+| Версия | 3.3.4 (2026-05-23) |
 | Платформа | Windows 10/11, Linux, macOS (Java cross-platform) |
 | Java | 21 LTS (OpenJDK / Temurin) |
 | UI-фреймворк | JavaFX 21.0.5 (controls / fxml / graphics) |
 | БД | SQLite 3 (через JDBC `org.xerial:sqlite-jdbc:3.42.0.0`), схема в 3НФ |
 | Сборка | Apache Maven 3.8+ (maven-shade-plugin → FAT JAR) |
-| Тесты | JUnit 5.10.2, 302 теста в 31 классе |
+| Тесты | JUnit 5.10.2, 311 тестов в 32 классах |
 | Паттерн | MVVM (Model–View–ViewModel) + слой сервисов |
 | Темизация | Dark / Light, runtime-переключение `Alt+T`, persist в `Preferences` |
 | Артефакт сборки | `dist/DigitalHub.jar` (FAT JAR, mainClass = `com.techhaven.Launcher`) |
@@ -58,6 +58,7 @@ Diplom_KST_New/
 │   │   ├── CartService.java
 │   │   ├── FavoriteService.java
 │   │   ├── OrderService.java     # Транзакционный placeOrder, role-checks на updateStatus/Delivery
+│   │   ├── OrderReceiptService.java # Код получения, дата, Code 128-C values
 │   │   ├── ProductService.java   # CRUD с role-checks и validate()
 │   │   ├── UserService.java      # Admin-операции (lock/unlock/list) с requireAdmin()
 │   │   ├── ProductCache.java     # In-memory кэш категорий (Singleton, thread-safe)
@@ -75,6 +76,8 @@ Diplom_KST_New/
 │       ├── ProductDetailView.java # Полноэкранная карточка товара (характеристики, действия)
 │       ├── Admin*.java           # AdminProductsView, AdminOrdersView, AdminUsersView, AdminReportsView
 │       └── component/
+│           ├── Code128Barcode.java    # JavaFX-рендер Code 128-C для кода заказа
+│           ├── OrderReceiptPane.java  # Блок данных для получения заказа
 │           └── NotificationPanel.java  # Toast-уведомления (success/info/warn/error)
 ├── src/main/resources/
 │   ├── schema.sql                # DDL: таблицы, CHECK-constraints, индексы (3НФ)
@@ -241,7 +244,7 @@ Maven сам подтягивает нужный classifier-jar (`javafx-graphic
 | Таблица | Ключевые поля | Назначение |
 |---|---|---|
 | `Categories` | id, name | Справочник категорий (11 записей) |
-| `OrderStatuses` | id, name, sort\_order | Справочник статусов заказов (8 записей) |
+| `OrderStatuses` | id, name, sort\_order | Справочник статусов заказов (9 записей) |
 | `Users` | id, username, email, phone, password\_hash, role, failed\_attempts, lock\_until | Пользователи |
 | `Products` | id, name, **category\_id** (FK → Categories), price, stock\_quantity, description, specifications | Товарный каталог |
 | `Orders` | id, user\_id, **status\_id** (FK → OrderStatuses), total\_amount, delivery\_address, contact\_phone | Заказы |
@@ -257,7 +260,7 @@ Maven сам подтягивает нужный classifier-jar (`javafx-graphic
 
 При первом запуске `DatabaseManager.initializeDatabase()` выполняет:
 1. Создание таблиц и индексов
-2. Заполнение справочников категорий (11 шт.) и статусов (8 шт.)
+2. Заполнение справочников категорий (11 шт.) и статусов (9 шт.)
 3. Сидирование 500 товаров по 11 категориям (`seedAllProducts()`)
 4. Создание тестовых пользователей (`seedUsersAndOrders()`):
    - 8 покупателей (роль USER)
@@ -266,6 +269,18 @@ Maven сам подтягивает нужный classifier-jar (`javafx-graphic
 6. Гарантированное наличие нескольких товаров с `stock_quantity = 0` (для проверки фильтра «Нет в наличии»).
 
 Все операции идемпотентны: используется `INSERT OR IGNORE` для справочников, товаров и пользователей; для заказов — проверка `SELECT COUNT(*) FROM Orders > 0` перед вставкой. Повторный запуск не создаёт дубликатов.
+
+### Код получения заказа
+
+После успешного оформления покупателю показывается модальное окно с данными для получения заказа: штрих-код Code 128-C, восьмизначный цифровой код, дата оформления в формате `dd.MM.yyyy HH:mm` и итоговая сумма. Эти же данные доступны в разделе **«Мои заказы»** в сворачиваемом блоке «Данные для получения».
+
+Отдельные поля в БД не добавляются: цифровой код детерминированно формируется из `Orders.id` (`00000042` для заказа №42), а дата и сумма уже хранятся в `Orders.order_date` и `Orders.total_amount`. Это сохраняет схему в 3НФ и не требует миграции существующих БД.
+
+### Выдача заказа администратором
+
+В разделе администратора **«Заказы»** общий поиск принимает имя клиента, адрес, номер заказа, цифровой код или данные штрих-кода. После поиска сотрудник нажимает кнопку **🤝** в столбце **«Действия»** нужной строки: она переводит заказ из статуса `Доставлен` в `Выдан` и добавляет запись в `OrderStatusHistory`.
+
+Для любого статуса кроме `Доставлен` система показывает ошибку. Право проверяется в `OrderService.issueOrderByReceiptCode`: операция доступна только роли `ADMIN`.
 
 ### Тестовые учётные записи
 
@@ -398,7 +413,7 @@ Default при первом запуске — `DARK` (поведение сов
 ### Запуск тестов
 
 ```
-mvn test             # только тесты (302 теста, ~10 сек)
+mvn test             # только тесты (311 тестов, ~10 сек)
 mvn verify           # тесты + JaCoCo-отчёт (target/site/jacoco/index.html)
 ```
 
@@ -410,13 +425,13 @@ mvn verify           # тесты + JaCoCo-отчёт (target/site/jacoco/index.
 |---|---|
 | Фреймворк | JUnit 5 (junit-jupiter 5.10.2) |
 | Покрытие | JaCoCo 0.8.13 (`view/**` исключён из отчёта — JavaFX runtime в CI не инициализируется) |
-| Тестовых классов | **31** |
-| Тестов всего | **302** |
+| Тестовых классов | **32** |
+| Тестов всего | **311** |
 | Failures / Errors / Skipped | **0 / 0 / 0** |
 | Результат | BUILD SUCCESS |
 | Время | ~10 секунд |
 
-### Тестовые классы (31 шт., 302 теста)
+### Тестовые классы (32 шт., 311 тестов)
 
 #### `com.techhaven.model` — 9 классов / 54 теста
 
@@ -430,7 +445,7 @@ mvn verify           # тесты + JaCoCo-отчёт (target/site/jacoco/index.
 | `Favorite` | 5 | Конструкторы, transient-поля |
 | `OrderStatusHistory` | 3 | Конструкторы, все поля |
 | `Role` | 4 | enum values, fromString, fallback |
-| `OrderStatus` | 7 | 8 статусов, fromString, нормализация ё/е, isTerminal |
+| `OrderStatus` | 7 | 9 статусов, fromString, нормализация ё/е, isTerminal |
 
 #### `com.techhaven.config` — 6 классов / 54 теста
 
@@ -459,14 +474,15 @@ mvn verify           # тесты + JaCoCo-отчёт (target/site/jacoco/index.
 | `CartRepository` | 11 | addToCart (суммирование quantity при дубле), getCartItems, removeFromCart, updateQuantity, clearCart |
 | `FavoriteRepository` | 8 | addFavorite, getFavorites, removeFavorite, isFavorite |
 
-#### `com.techhaven.service` — 7 классов / 107 тестов
+#### `com.techhaven.service` — 8 классов / 116 тестов
 
 | Класс | Тестов | Что проверяется |
 |---|---|---|
 | `AuthService` | 11 | Валидация пароля, hash/verify, null/empty |
 | `CartService` | 8 | getCartItems, addToCart, removeFromCart, getTotal, isInCart |
 | `FavoriteService` | 4 | getFavorites, getFavoriteCount, isFavorite, addAndRemove |
-| `OrderService` | 33 | placeOrder валидация, success path, чтение заказов, updateStatus, защита от ухода стока в минус (атомарный `decrementStock` + транзакция), `placeOrderRollsBackOnFailure` (orders+1, stock-1, history++, cart=0), USER не может менять статус кроме отмены своего заказа |
+| `OrderService` | 38 | placeOrder валидация, success path, чтение заказов, updateStatus, выдача заказа по коду получения только из статуса `Доставлен`, защита от ухода стока в минус (атомарный `decrementStock` + транзакция), `placeOrderRollsBackOnFailure` (orders+1, stock-1, history++, cart=0), USER не может менять статус кроме отмены своего заказа |
+| `OrderReceiptService` | 4 | Восьмизначный код получения, формат даты оформления, sequence Code 128-C с checksum, отклонение пустого значения |
 | `ProductCache` | 12 | cache hit/miss, invalidate, счётчики, конкурентный доступ, неизменяемость |
 | `ProductService` | 31 | getAllProducts, search, pagination, categories, `validate()` (7 кейсов: пустое имя, отриц. цена, отриц. сток, пустая / несуществующая категория, дубль имени, same-name on edit), role-checks |
 | `UndoService` | 8 | Singleton, isPendingDeletion, forceExecute, undo |
@@ -507,7 +523,7 @@ mvn verify           # тесты + JaCoCo-отчёт (target/site/jacoco/index.
 ## 10. Статусная модель заказа
 
 ```
-Новый ──► В обработке ──► Подтверждён ──► Собран ──► Отправлен ──► Доставлен ──► Завершён
+Новый ──► В обработке ──► Подтверждён ──► Собран ──► Отправлен ──► Доставлен ──► Выдан ──► Завершён
    └──────────────────────────────────────────────────────────────────────────► Отменён
 ```
 

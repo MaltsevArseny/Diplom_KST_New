@@ -170,6 +170,16 @@ public class OrderRepository implements IOrderRepository {
         }
     }
 
+    /** Обновляет статус заказа в рамках переданной транзакции. */
+    public void updateStatus(Connection conn, int orderId, String status) throws SQLException {
+        String sql = "UPDATE Orders SET status_id = (SELECT id FROM OrderStatuses WHERE name = ?), updated_at = datetime('now','localtime') WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, orderId);
+            ps.executeUpdate();
+        }
+    }
+
     @Override
     public void updatePlannedDelivery(int orderId, String date, String interval) {
         String sql = "UPDATE Orders SET planned_delivery_date = ?, planned_delivery_interval = ?, updated_at = datetime('now','localtime') WHERE id = ?";

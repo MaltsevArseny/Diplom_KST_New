@@ -10,6 +10,7 @@ public enum OrderStatus {
     ASSEMBLED("Собран"),
     SHIPPED("Отправлен"),
     DELIVERED("Доставлен"),
+    ISSUED("Выдан"),
     COMPLETED("Завершён"),
     CANCELLED("Отменён");
 
@@ -40,10 +41,10 @@ public enum OrderStatus {
     }
 
     /**
-     * Проверяет, является ли заказ завершённым (финальный статус).
+     * Проверяет, является ли заказ терминальным для покупателя.
      */
     public boolean isTerminal() {
-        return this == COMPLETED || this == CANCELLED;
+        return this == ISSUED || this == COMPLETED || this == CANCELLED;
     }
 
     @Override

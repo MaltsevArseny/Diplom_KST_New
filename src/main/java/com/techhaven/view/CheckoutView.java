@@ -16,6 +16,7 @@ import com.techhaven.model.Order;
 import com.techhaven.model.User;
 import com.techhaven.service.CartService;
 import com.techhaven.service.OrderService;
+import com.techhaven.view.component.OrderReceiptPane;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -357,7 +358,7 @@ public class CheckoutView {
                 errorLabel.setVisible(true);
                 errorLabel.setManaged(true);
             } else {
-                showSuccess();
+                showSuccess(orderService.getLastOrder());
             }
         });
 
@@ -382,13 +383,13 @@ public class CheckoutView {
         return label;
     }
 
-    private void showSuccess() {
+    private void showSuccess(Order order) {
         Stage successStage = DialogHelper.createStage(MainApp.getPrimaryStage(), true);
 
-        VBox root = new VBox(24);
+        VBox root = new VBox(18);
         root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(40));
-        root.setPrefWidth(450);
+        root.setPadding(new Insets(32));
+        root.setPrefWidth(520);
         root.setStyle(DialogHelper.cardStyle());
 
         // Клип — единственный надёжный способ скруглить все 4 угла в JavaFX
@@ -402,23 +403,22 @@ public class CheckoutView {
             }
         });
 
-        Label successIcon = new Label("🎉");
-        successIcon.setStyle("-fx-font-size: 80px;");
-
         VBox textContent = new VBox(8);
         textContent.setAlignment(Pos.CENTER);
 
         Label title = new Label("Заказ оформлен!");
-        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: -th-cream;");
+        title.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: -th-cream;");
 
-        Label subtitle = new Label("Ваш заказ успешно принят в работу");
+        Label subtitle = new Label("Сфотографируйте данные для получения заказа");
         subtitle.setStyle("-fx-text-fill: -th-success; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-        Label details = new Label("Оплата будет произведена при получении.\nМы уже начали готовить товары к отправке.");
-        details.setStyle("-fx-text-fill: -th-text-secondary; -fx-text-alignment: center; -fx-line-spacing: 5;");
+        Label details = new Label("Продавец сверит код или штрих-код и выдаст товары со склада.");
+        details.setStyle("-fx-text-fill: -th-text-secondary; -fx-text-alignment: center;");
         details.setWrapText(true);
         
         textContent.getChildren().addAll(title, subtitle, details);
+
+        VBox receipt = OrderReceiptPane.create(order, false);
 
         HBox actions = new HBox(16);
         actions.setAlignment(Pos.CENTER);
@@ -445,7 +445,7 @@ public class CheckoutView {
         });
 
         actions.getChildren().addAll(toOrdersBtn, toCatalogBtn);
-        root.getChildren().addAll(successIcon, textContent, actions);
+        root.getChildren().addAll(textContent, receipt, actions);
 
         successStage.centerOnScreen();
         DialogHelper.applyTransparentSceneAndWait(root, successStage);

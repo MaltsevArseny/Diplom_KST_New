@@ -11,6 +11,7 @@ import com.techhaven.config.SessionManager;
 import com.techhaven.model.CartItem;
 import com.techhaven.model.Order;
 import com.techhaven.model.OrderItem;
+import com.techhaven.model.OrderStatus;
 import com.techhaven.model.OrderStatusHistory;
 import com.techhaven.model.Product;
 import com.techhaven.repository.CartRepository;
@@ -35,6 +36,12 @@ public class OrderService {
     static final String MSG_EMPTY_CART = "Корзина пуста";
     static final String MSG_CREATE_ERROR = "Ошибка создания заказа";
     static final String MSG_STOCK_RACE = "Товар закончился, пока вы оформляли заказ: ";
+    static final String MSG_EMPTY_RECEIPT_CODE = "Введите штрих-код или цифровой код заказа";
+    static final String MSG_ORDER_NOT_FOUND_BY_CODE = "Заказ с таким кодом не найден";
+    static final String MSG_ORDER_ALREADY_ISSUED = "Заказ уже выдан";
+    static final String MSG_CANCELLED_ORDER_CANNOT_BE_ISSUED = "Отменённый заказ нельзя выдать";
+    static final String MSG_ORDER_NOT_DELIVERED = "Заказ можно выдать только в статусе «Доставлен»";
+    static final String MSG_ISSUE_ERROR = "Ошибка выдачи заказа";
 
     private final OrderRepository orderRepo = new OrderRepository();
     private final CartRepository cartRepo = new CartRepository();
@@ -169,9 +176,66 @@ public class OrderService {
         return orderRepo.findOrderItems(orderId);
     }
 
+    /**
+     * Ищет заказ по данным получения: штрих-коду или цифровому коду.
+     *
+     * @throws SecurityException если вызывающий не имеет роли ADMIN
+     */
+    public Order findOrderByReceiptCode(String receiptCode) {
+        SessionManager.getInstance().requireAdmin();
+        int orderId = OrderReceiptService.parseOrderId(receiptCode);
+        return orderId > 0 ? orderRepo.findById(orderId) : null;
+    }
+
+    /**
+     * Выдаёт заказ клиенту по штрих-коду или цифровому коду.
+     *
+     * <p>Выдача со склада является отдельной admin-операцией и переводит
+     * найденный доставленный заказ в статус «Выдан» с записью в
+     * историю статусов. Ручная последовательная смена статусов остаётся
+     * строгой и проверяется в {@link #updateStatus(int, String)}.</p>
+     *
+     * @return null при успехе или строка ошибки для отображения администратору
+     * @throws SecurityException если вызывающий не имеет роли ADMIN
+     */
+    public String issueOrderByReceiptCode(String receiptCode) {
+        SessionManager session = SessionManager.getInstance();
+        session.requireAdmin();
+
+        int orderId = OrderReceiptService.parseOrderId(receiptCode);
+        if (orderId <= 0) return MSG_EMPTY_RECEIPT_CODE;
+
+        Order order = orderRepo.findById(orderId);
+        if (order == null) return MSG_ORDER_NOT_FOUND_BY_CODE;
+
+        OrderStatus currentStatus = OrderStatus.fromString(order.getStatus());
+        if (currentStatus == OrderStatus.ISSUED || currentStatus == OrderStatus.COMPLETED) return MSG_ORDER_ALREADY_ISSUED;
+        if (currentStatus == OrderStatus.CANCELLED) return MSG_CANCELLED_ORDER_CANNOT_BE_ISSUED;
+        if (currentStatus != OrderStatus.DELIVERED) return MSG_ORDER_NOT_DELIVERED;
+
+        try (Connection conn = DatabaseManager.getInstance().getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                String issued = OrderStatus.ISSUED.getDisplayName();
+                orderRepo.updateStatus(conn, orderId, issued);
+                orderRepo.addStatusHistory(conn, orderId, issued, session.getCurrentUserId());
+                conn.commit();
+                LOGGER.info(String.format("Заказ #%d выдан клиенту", orderId));
+                return null;
+            } catch (SQLException txEx) {
+                try { conn.rollback(); } catch (SQLException ignore) {}
+                LOGGER.log(Level.SEVERE, "Ошибка транзакции выдачи заказа", txEx);
+                return MSG_ISSUE_ERROR;
+            }
+        } catch (SQLException connEx) {
+            LOGGER.log(Level.SEVERE, "Не удалось открыть транзакцию для выдачи заказа", connEx);
+            return MSG_ISSUE_ERROR;
+        }
+    }
+
     /** Допустимый порядок статусов (без «Отменён» — отмена допустима из любого) */
     private static final List<String> STATUS_ORDER = List.of(
-        "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён"
+        "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Выдан", "Завершён"
     );
 
     static final String MSG_INVALID_TRANSITION = "Недопустимый переход статуса";
@@ -210,10 +274,10 @@ public class OrderService {
         String normNew = newStatus.replace("Завершен", "Завершён")
             .replace("Отменен", "Отменён").replace("Подтвержден", "Подтверждён");
 
-        // Отмена допустима из любого статуса (кроме уже завершённых)
+        // Отмена допустима из любого статуса до фактической выдачи или закрытия.
         if ("Отменён".equals(normNew)) {
-            if ("Завершён".equals(normCurrent)) {
-                return MSG_INVALID_TRANSITION + ": завершённый заказ нельзя отменить";
+            if ("Выдан".equals(normCurrent) || "Завершён".equals(normCurrent)) {
+                return MSG_INVALID_TRANSITION + ": выданный или завершённый заказ нельзя отменить";
             }
             orderRepo.updateStatus(orderId, normNew);
             orderRepo.addStatusHistory(orderId, normNew,
@@ -264,7 +328,7 @@ public class OrderService {
     public int getIncompleteOrdersCount() {
         int userId = SessionManager.getInstance().getCurrentUserId();
         if (userId < 0) return 0;
-        // Фильтруем заказы с нетерминальным статусом (не "Доставлен", не "Отменен")
+        // Фильтруем заказы с нетерминальным статусом.
         return (int) orderRepo.findByUserId(userId).stream()
             .filter(o -> !com.techhaven.model.OrderStatus.fromString(o.getStatus()).isTerminal())
             .count();

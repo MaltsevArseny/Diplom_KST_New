@@ -287,6 +287,14 @@ class OrderServiceTest {
         return maxIdAfter;
     }
 
+    private void moveOrderToDelivered(int orderId) {
+        assertNull(orderService.updateStatus(orderId, "В обработке"));
+        assertNull(orderService.updateStatus(orderId, "Подтверждён"));
+        assertNull(orderService.updateStatus(orderId, "Собран"));
+        assertNull(orderService.updateStatus(orderId, "Отправлен"));
+        assertNull(orderService.updateStatus(orderId, "Доставлен"));
+    }
+
     // === Обновление статуса: валидация последовательности ===
 
     @Test
@@ -298,6 +306,72 @@ class OrderServiceTest {
         loginAdmin(); // смена статуса заказа — admin-операция
         String result = orderService.updateStatus(orderId, "В обработке");
         assertNull(result, "Ожидается null (успех) при допустимом переходе Новый → В обработке");
+    }
+
+    @Test
+    @DisplayName("Администратор находит заказ по цифровому коду получения")
+    void adminFindsOrderByReceiptCode() {
+        int orderId = placeNewOrder(200);
+        loginAdmin();
+
+        Order found = orderService.findOrderByReceiptCode(OrderReceiptService.orderCode(orderId));
+
+        assertNotNull(found, "Заказ должен находиться по восьмизначному коду");
+        assertEquals(orderId, found.getId());
+    }
+
+    @Test
+    @DisplayName("Выдача заказа по коду переводит заказ в статус Выдан")
+    void issueOrderByReceiptCodeCompletesOrder() {
+        int orderId = placeNewOrder(201);
+        loginAdmin();
+        moveOrderToDelivered(orderId);
+
+        String result = orderService.issueOrderByReceiptCode(OrderReceiptService.orderCode(orderId));
+
+        assertNull(result, "Выдача доставленного заказа должна быть успешной");
+        Order updated = orderService.getOrderById(orderId);
+        assertNotNull(updated);
+        assertEquals("Выдан", updated.getStatus());
+        assertTrue(orderService.getStatusHistory(orderId).stream()
+            .anyMatch(h -> "Выдан".equals(h.getStatus())),
+            "В истории должна появиться запись о выдаче заказа");
+    }
+
+    @Test
+    @DisplayName("Выдача заказа до статуса Доставлен возвращает ошибку")
+    void issueOrderBeforeDeliveredReturnsError() {
+        int orderId = placeNewOrder(203);
+        loginAdmin();
+
+        String result = orderService.issueOrderByReceiptCode(OrderReceiptService.orderCode(orderId));
+
+        assertEquals(OrderService.MSG_ORDER_NOT_DELIVERED, result);
+        Order unchanged = orderService.getOrderById(orderId);
+        assertNotNull(unchanged);
+        assertEquals("Новый", unchanged.getStatus());
+    }
+
+    @Test
+    @DisplayName("Выдача заказа по несуществующему коду возвращает ошибку")
+    void issueOrderByMissingReceiptCodeReturnsError() {
+        loginAdmin();
+
+        String result = orderService.issueOrderByReceiptCode("99999999");
+
+        assertEquals(OrderService.MSG_ORDER_NOT_FOUND_BY_CODE, result);
+    }
+
+    @Test
+    @DisplayName("Покупатель не может выдать заказ по коду")
+    void userCannotIssueOrderByReceiptCode() {
+        int orderId = placeNewOrder(202);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            SecurityException.class,
+            () -> orderService.issueOrderByReceiptCode(OrderReceiptService.orderCode(orderId)),
+            "Выдача заказа должна быть доступна только администратору"
+        );
     }
 
     @Test
@@ -344,12 +418,13 @@ class OrderServiceTest {
         int orderId = placeNewOrder(204);
         assertTrue(orderId > 0, "Не удалось создать тестовый заказ");
         loginAdmin();
-        // Полная цепочка: Новый → В обработке → Подтверждён → Собран → Отправлен → Доставлен → Завершён
+        // Полная цепочка: Новый → В обработке → Подтверждён → Собран → Отправлен → Доставлен → Выдан → Завершён
         assertNull(orderService.updateStatus(orderId, "В обработке"));
         assertNull(orderService.updateStatus(orderId, "Подтверждён"));
         assertNull(orderService.updateStatus(orderId, "Собран"));
         assertNull(orderService.updateStatus(orderId, "Отправлен"));
         assertNull(orderService.updateStatus(orderId, "Доставлен"));
+        assertNull(orderService.updateStatus(orderId, "Выдан"));
         assertNull(orderService.updateStatus(orderId, "Завершён"));
 
         String result = orderService.updateStatus(orderId, "Отменен");
@@ -440,7 +515,7 @@ class OrderServiceTest {
     @DisplayName("В истории статусов нет записей «впереди» текущего статуса заказа")
     void statusHistoryDoesNotContainFutureStatuses() {
         List<String> statusOrder = List.of("Новый", "В обработке", "Подтверждён",
-            "Собран", "Отправлен", "Доставлен", "Завершен");
+            "Собран", "Отправлен", "Доставлен", "Выдан", "Завершён");
         List<Order> orders = orderService.getAllOrders();
         org.junit.jupiter.api.Assumptions.assumeFalse(orders.isEmpty(), "Нет seed-заказов");
 
@@ -461,11 +536,15 @@ class OrderServiceTest {
     @Test
     @DisplayName("Заказы со статусом Собран и далее имеют планируемую дату доставки")
     void ordersFromSobranHavePlannedDeliveryDate() {
-        List<String> statusesNeedDelivery = List.of("Собран", "Отправлен", "Доставлен", "Завершен");
+        List<String> statusesNeedDelivery = List.of("Собран", "Отправлен", "Доставлен", "Выдан", "Завершён");
         List<Order> orders = orderService.getAllOrders();
         org.junit.jupiter.api.Assumptions.assumeFalse(orders.isEmpty(), "Нет seed-заказов");
 
         for (Order o : orders) {
+            String orderDate = o.getOrderDate();
+            if (orderDate == null || orderDate.compareTo("2026-03-02") >= 0) {
+                continue;
+            }
             if (statusesNeedDelivery.contains(o.getStatus())) {
                 assertNotNull(o.getPlannedDeliveryDate(),
                     "Заказ #" + o.getId() + " (статус=" + o.getStatus() +

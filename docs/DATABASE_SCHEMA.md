@@ -1,6 +1,6 @@
 # Модель базы данных DigitalHub
 
-> Версия: 3.3.0 | СУБД: SQLite 3 (`org.xerial:sqlite-jdbc:3.42.0.0`) | Нормальная форма: **3NF**
+> Версия: 3.3.4 | СУБД: SQLite 3 (`org.xerial:sqlite-jdbc:3.42.0.0`) | Нормальная форма: **3NF**
 >
 > Источник DDL: `src/main/resources/schema.sql` (читается в `DatabaseManager.initializeDatabase()` через `loadResource("/schema.sql")`).
 > Программное сидирование (категории, статусы, 500 товаров, 11 пользователей, 170 заказов) — `config/DatabaseManager.java` и `config/SeedProducts.java`.
@@ -33,6 +33,8 @@ erDiagram
 | Внешние ключи | Включены через `PRAGMA foreign_keys = ON` при каждом `getConnection()` |
 | Каскадное удаление | Только `OrderItems` при удалении `Orders` (`ON DELETE CASCADE`); остальные FK без каскада |
 | Транзакции оформления заказа | `OrderService.placeOrder` оборачивает создание заказа, позиций, атомарное списание стока, запись истории и очистку корзины в **одну** транзакцию (`setAutoCommit(false)` + `commit/rollback`) |
+| Код получения заказа | Отдельного столбца нет: восьмизначный цифровой код формируется из `Orders.id`, штрих-код Code 128-C строится из этого кода; дата и сумма берутся из `Orders.order_date` и `Orders.total_amount` |
+| Выдача заказа | `OrderService.issueOrderByReceiptCode` ищет заказ по коду получения, переводит заказ из `Доставлен` в `Выдан` и добавляет запись в `OrderStatusHistory`; для остальных статусов возвращает ошибку, новые таблицы не требуются |
 | Защита остатков | `ProductRepository.decrementStock(conn, productId, qty)` — атомарный `UPDATE Products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?`; возвращает `false` при гонке, инициируя rollback всей транзакции |
 | CHECK-constraints | `Products.price ≥ 0`, `Products.stock_quantity ≥ 0`, `Orders.total_amount ≥ 0`, `OrderItems.quantity > 0`, `OrderItems.price_at_order ≥ 0`, `Cart.quantity > 0` — гарантия неотрицательных значений и положительного количества на уровне БД |
 | Идемпотентное сидирование | Справочники, товары, пользователи — `INSERT OR IGNORE`; перед созданием UNIQUE-индексов на `Cart`/`Favorites` выполняется dedup `DELETE WHERE id NOT IN (SELECT MIN(id) GROUP BY user_id, product_id)` — безопасная миграция существующих БД |
@@ -75,7 +77,7 @@ erDiagram
 | `name` | TEXT NOT NULL UNIQUE | Отображаемое название (на русском) |
 | `sort_order` | INTEGER NOT NULL DEFAULT 0 | Порядок сортировки в UI (1 — первый) |
 
-**Содержимое (8 записей, `DatabaseManager.seedOrderStatuses()`):**
+**Содержимое (9 записей, `DatabaseManager.seedOrderStatuses()`):**
 
 | `sort_order` | `name` |
 |---:|---|
@@ -85,12 +87,13 @@ erDiagram
 | 4 | Собран |
 | 5 | Отправлен |
 | 6 | Доставлен |
-| 7 | Завершён |
-| 8 | Отменён |
+| 7 | Выдан |
+| 8 | Завершён |
+| 9 | Отменён |
 
 **Жизненный цикл заказа:**
 ```
-Новый → В обработке → Подтверждён → Собран → Отправлен → Доставлен → Завершён
+Новый → В обработке → Подтверждён → Собран → Отправлен → Доставлен → Выдан → Завершён
                                                               ↘ Отменён
 ```
 Каждая смена статуса фиксируется отдельной записью в `OrderStatusHistory`.
@@ -160,6 +163,8 @@ erDiagram
 **Индексы:**
 - `idx_orders_user` — заказы конкретного пользователя
 - `idx_orders_status` — фильтрация по статусу
+
+**Данные для получения заказа:** экран оформления и раздел «Мои заказы» показывают покупателю штрих-код Code 128-C, цифровой код, дату оформления и сумму заказа. Новые поля в таблицу не добавляются: цифровой код — это форматированный `id`, дата и сумма уже хранятся в `order_date` и `total_amount`.
 
 ---
 

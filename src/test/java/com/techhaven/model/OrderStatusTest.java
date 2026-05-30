@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 class OrderStatusTest {
 
     @Test
-    @DisplayName("Enum содержит 8 статусов")
+    @DisplayName("Enum содержит 9 статусов")
     void enumValues() {
-        assertEquals(8, OrderStatus.values().length);
+        assertEquals(9, OrderStatus.values().length);
     }
 
     @Test
@@ -23,6 +23,7 @@ class OrderStatusTest {
         assertEquals("Собран", OrderStatus.ASSEMBLED.getDisplayName());
         assertEquals("Отправлен", OrderStatus.SHIPPED.getDisplayName());
         assertEquals("Доставлен", OrderStatus.DELIVERED.getDisplayName());
+        assertEquals("Выдан", OrderStatus.ISSUED.getDisplayName());
         assertEquals("Завершён", OrderStatus.COMPLETED.getDisplayName());
         assertEquals("Отменён", OrderStatus.CANCELLED.getDisplayName());
     }
@@ -32,6 +33,7 @@ class OrderStatusTest {
     void fromStringValid() {
         assertEquals(OrderStatus.NEW, OrderStatus.fromString("Новый"));
         assertEquals(OrderStatus.PROCESSING, OrderStatus.fromString("В обработке"));
+        assertEquals(OrderStatus.ISSUED, OrderStatus.fromString("Выдан"));
         assertEquals(OrderStatus.COMPLETED, OrderStatus.fromString("Завершён"));
         assertEquals(OrderStatus.CANCELLED, OrderStatus.fromString("Отменён"));
     }
@@ -51,8 +53,9 @@ class OrderStatusTest {
     }
 
     @Test
-    @DisplayName("isTerminal — только Завершён и Отменён")
+    @DisplayName("isTerminal — Выдан, Завершён и Отменён")
     void isTerminal() {
+        assertTrue(OrderStatus.ISSUED.isTerminal());
         assertTrue(OrderStatus.COMPLETED.isTerminal());
         assertTrue(OrderStatus.CANCELLED.isTerminal());
         assertFalse(OrderStatus.NEW.isTerminal());

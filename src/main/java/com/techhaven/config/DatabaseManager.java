@@ -134,17 +134,24 @@ public class DatabaseManager {
         String[][] statuses = {
             {"Новый", "1"}, {"В обработке", "2"}, {"Подтверждён", "3"},
             {"Собран", "4"}, {"Отправлен", "5"}, {"Доставлен", "6"},
-            {"Завершён", "7"}, {"Отменён", "8"}
+            {"Выдан", "7"}, {"Завершён", "8"}, {"Отменён", "9"}
         };
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                 "INSERT OR IGNORE INTO OrderStatuses (name, sort_order) VALUES (?, ?)")) {
+             PreparedStatement insert = conn.prepareStatement(
+                 "INSERT OR IGNORE INTO OrderStatuses (name, sort_order) VALUES (?, ?)");
+             PreparedStatement update = conn.prepareStatement(
+                 "UPDATE OrderStatuses SET sort_order = ? WHERE name = ?")) {
             for (String[] s : statuses) {
-                ps.setString(1, s[0]);
-                ps.setInt(2, Integer.parseInt(s[1]));
-                ps.addBatch();
+                int sortOrder = Integer.parseInt(s[1]);
+                insert.setString(1, s[0]);
+                insert.setInt(2, sortOrder);
+                insert.addBatch();
+                update.setInt(1, sortOrder);
+                update.setString(2, s[0]);
+                update.addBatch();
             }
-            ps.executeBatch();
+            insert.executeBatch();
+            update.executeBatch();
             LOGGER.info("Справочник статусов сидирован");
         } catch (SQLException e) {
             LOGGER.log(Level.WARNING, "seedOrderStatuses", e);
@@ -211,12 +218,12 @@ public class DatabaseManager {
         if (productIds.isEmpty()) { LOGGER.warning("Нет товаров для seed"); return; }
 
         // Получаем ID статусов (по sort_order)
-        int[] statusIds = new int[8]; // indexed 0..7
+        int[] statusIds = new int[9]; // indexed 0..8
         try (Connection conn = getConnection(); Statement st = conn.createStatement()) {
             ResultSet rs = st.executeQuery("SELECT id, sort_order FROM OrderStatuses ORDER BY sort_order");
             while (rs.next()) {
                 int idx = rs.getInt("sort_order") - 1;
-                if (idx >= 0 && idx < 8) statusIds[idx] = rs.getInt("id");
+                if (idx >= 0 && idx < 9) statusIds[idx] = rs.getInt("id");
             }
         } catch (Exception e) { LOGGER.log(Level.WARNING, "fetch statuses", e); }
 
@@ -256,9 +263,8 @@ public class DatabaseManager {
         String insertItem = "INSERT INTO OrderItems (order_id,product_id,quantity,price_at_order) VALUES (?,?,?,?)";
         String insertHist = "INSERT INTO OrderStatusHistory (order_id, status_id, changed_at, changed_by) VALUES (?, ?, ?, ?)";
 
-        // Целевые статусы для заказов (распределение): 0=Новый,1=В обработке,..,5=Доставлен,6=Завершён,7=Отменён
-        // Примерно: 10% новые, 10% в обработке, 10% подтверждены, 10% собраны, 10% отправлены, 25% доставлены, 20% завершены, 5% отменены
-        int[] targetDistribution = {0,0, 1,1, 2,2, 3,3, 4,4, 5,5,5,5,5, 6,6,6,6, 7};
+        // Целевые статусы: 0=Новый,..,5=Доставлен,6=Выдан,7=Завершён,8=Отменён
+        int[] targetDistribution = {0,0, 1,1, 2,2, 3,3, 4,4, 5,5,5, 6,6,6, 7,7, 8};
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -335,7 +341,7 @@ public class DatabaseManager {
                         psI.executeBatch();
 
                         // История статусов: от «Новый» до целевого
-                        int histEnd = targetStatusIdx == 7 ? rnd.nextInt(5) : targetStatusIdx; // Отменён — с произвольного
+                        int histEnd = targetStatusIdx == 8 ? rnd.nextInt(5) : targetStatusIdx; // Отменён — с произвольного
                         for (int k = 0; k <= histEnd; k++) {
                             psH.setInt(1, orderId);
                             psH.setInt(2, statusIds[k]);
@@ -343,9 +349,9 @@ public class DatabaseManager {
                             psH.setInt(4, adminId > 0 ? adminId : 1);
                             psH.addBatch();
                         }
-                        if (targetStatusIdx == 7) { // Отменён
+                        if (targetStatusIdx == 8) { // Отменён
                             psH.setInt(1, orderId);
-                            psH.setInt(2, statusIds[7]);
+                            psH.setInt(2, statusIds[8]);
                             psH.setString(3, d.plusDays(histEnd + 1) + " 10:00:00");
                             psH.setInt(4, adminId > 0 ? adminId : 1);
                             psH.addBatch();

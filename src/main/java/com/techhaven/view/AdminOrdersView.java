@@ -2,7 +2,6 @@ package com.techhaven.view;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,6 +10,7 @@ import com.techhaven.MainApp;
 import com.techhaven.model.Order;
 import com.techhaven.model.OrderItem;
 import com.techhaven.model.OrderStatusHistory;
+import com.techhaven.service.OrderReceiptService;
 import com.techhaven.service.OrderService;
 
 import javafx.collections.FXCollections;
@@ -43,15 +43,8 @@ public class AdminOrdersView {
     private ComboBox<String> statusFilter;
 
     private static final String[] STATUSES = {
-        "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Завершён", "Отменён"
+        "Новый", "В обработке", "Подтверждён", "Собран", "Отправлен", "Доставлен", "Выдан", "Завершён", "Отменён"
     };
-
-    private static final DateTimeFormatter FMT_DATETIME =
-        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-    private static final DateTimeFormatter FMT_DATE =
-        DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final DateTimeFormatter DB_FMT =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public AdminOrdersView(AdminLayout adminLayout) {
         // adminLayout передаётся для единообразия API, но не используется
@@ -67,7 +60,7 @@ public class AdminOrdersView {
 
         // ── Поиск ─────────────────────────────────────────────────
         searchField = new TextField();
-        searchField.setPromptText("🔍 Поиск по клиенту или адресу...");
+        searchField.setPromptText("🔍 Поиск по клиенту, адресу или коду...");
         searchField.setPrefWidth(280);
         searchField.setStyle(
             "-fx-background-color: -th-bg-card; -fx-text-fill: -th-text-primary; -fx-border-color: -th-border;" +
@@ -79,7 +72,7 @@ public class AdminOrdersView {
         // ── Фильтр по статусу ──────────────────────────────────
         statusFilter = new ComboBox<>(FXCollections.observableArrayList(
             "Все статусы", "Новый", "В обработке", "Подтверждён", "Собран",
-            "Отправлен", "Доставлен", "Завершён", "Отменён"
+            "Отправлен", "Доставлен", "Выдан", "Завершён", "Отменён"
         ));
         statusFilter.setValue("Все статусы");
         statusFilter.setPrefWidth(200);
@@ -128,7 +121,7 @@ public class AdminOrdersView {
                 setAlignment(Pos.CENTER);
                 setStyle("-fx-font-size: 13px;");
                 if (empty || val == null) { setText(""); return; }
-                setText(val.format(FMT_DATETIME));
+                setText(OrderUiSupport.formatDateTime(val));
             }
         });
         // Сортировка по умолчанию — новые сверху
@@ -149,7 +142,7 @@ public class AdminOrdersView {
                 String datePart;
                 String timePart;
                 if (val.length() >= 10 && val.charAt(4) == '-' && val.charAt(7) == '-') {
-                    datePart = formatDateStr(val.substring(0, 10));
+                    datePart = OrderUiSupport.formatDate(val.substring(0, 10));
                     timePart = val.length() > 10 ? val.substring(10).trim() : "";
                 } else {
                     // Нет даты — отображаем как есть
@@ -182,7 +175,9 @@ public class AdminOrdersView {
                     return;
                 }
                 // Формат: дата (первые 10 символов) + интервал на новой строке
-                String datePart = val.length() >= 10 ? formatDateStr(val.substring(0, 10)) : formatDateStr(val);
+                String datePart = val.length() >= 10
+                    ? OrderUiSupport.formatDate(val.substring(0, 10))
+                    : OrderUiSupport.formatDate(val);
                 Order o = getTableView().getItems().get(getIndex());
                 String interval = o.getPlannedDeliveryInterval();
                 String timePart = (interval != null && !interval.isEmpty()) ? interval : "";
@@ -200,7 +195,7 @@ public class AdminOrdersView {
             @Override protected void updateItem(String val, boolean empty) {
                 super.updateItem(val, empty);
                 if (empty || val == null) { setGraphic(null); setText(null); return; }
-                setGraphic(styledStatusBadge(val)); setText(null);
+                setGraphic(OrderUiSupport.statusBadge(val)); setText(null);
             }
         });
 
@@ -224,16 +219,20 @@ public class AdminOrdersView {
         addTooltip(addressCol, "Адрес доставки заказа");
 
         TableColumn<Order, Void> actionsCol = new TableColumn<>("Действия");
-        actionsCol.setPrefWidth(220);
+        actionsCol.setPrefWidth(250);
         addTooltip(actionsCol, "Управление статусом и деталями заказа");
         actionsCol.setCellFactory(col -> new TableCell<>() {
             private final ComboBox<String> statusCombo = new ComboBox<>(FXCollections.observableArrayList(STATUSES));
             private final Button applyBtn = new Button("✔");
+            private final Button issueBtn = new Button("🤝");
             private final Button detailBtn = new Button("📋");
             {
                 applyBtn.getStyleClass().addAll("btn-primary", "btn-small");
                 applyBtn.setTooltip(new Tooltip("Применить выбранный статус"));
                 applyBtn.setStyle("-fx-min-width: 28; -fx-max-width: 28; -fx-padding: 4 6;");
+                issueBtn.getStyleClass().addAll("button", "btn-small");
+                issueBtn.setTooltip(new Tooltip("Выдать заказ клиенту"));
+                issueBtn.setStyle("-fx-min-width: 28; -fx-max-width: 28; -fx-padding: 4 6;");
                 detailBtn.getStyleClass().addAll("button", "btn-small");
                 detailBtn.setTooltip(new Tooltip("Подробности заказа"));
                 detailBtn.setStyle("-fx-min-width: 28; -fx-max-width: 28; -fx-padding: 4 6;");
@@ -258,8 +257,9 @@ public class AdminOrdersView {
                             }
                         }
                     });
+                    issueBtn.setOnAction(e -> issueOrder(o));
                     detailBtn.setOnAction(e -> showOrderDetail(o));
-                    HBox box = new HBox(4, statusCombo, applyBtn, detailBtn);
+                    HBox box = new HBox(4, statusCombo, applyBtn, issueBtn, detailBtn);
                     box.setAlignment(Pos.CENTER);
                     setGraphic(box);
                 }
@@ -297,6 +297,7 @@ public class AdminOrdersView {
         if (allOrders == null) return;
         String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";
         String status = statusFilter != null ? statusFilter.getValue() : "Все статусы";
+        String queryDigits = query.replaceAll("\\D+", "");
 
         List<Order> filtered = allOrders.stream()
             .filter(o -> {
@@ -307,11 +308,30 @@ public class AdminOrdersView {
                 if (query.isEmpty()) return true;
                 String name = o.getUsername() != null ? o.getUsername().toLowerCase() : "";
                 String addr = o.getDeliveryAddress() != null ? o.getDeliveryAddress().toLowerCase() : "";
-                return name.contains(query) || addr.contains(query);
+                String id = String.valueOf(o.getId());
+                String code = OrderReceiptService.orderCode(o);
+                boolean codeMatch = id.contains(query) || code.contains(query);
+                if (!queryDigits.isEmpty()) {
+                    int parsedId = OrderReceiptService.parseOrderId(queryDigits);
+                    codeMatch = codeMatch || (parsedId > 0 && parsedId == o.getId());
+                }
+                return name.contains(query) || addr.contains(query) || codeMatch;
             })
             .collect(Collectors.toList());
 
         table.setItems(FXCollections.observableArrayList(filtered));
+    }
+
+    private void issueOrder(Order order) {
+        if (order == null) return;
+        String error = orderService.issueOrderByReceiptCode(OrderReceiptService.orderCode(order));
+        if (error != null) {
+            DialogHelper.showWarning("Заказ не выдан", error);
+            return;
+        }
+
+        DialogHelper.showInfo("Заказ выдан", "Заказ #" + order.getId() + " переведён в статус «Выдан».");
+        loadOrders();
     }
 
     private void showOrderDetail(Order order) {
@@ -326,12 +346,12 @@ public class AdminOrdersView {
         VBox content = new VBox(8);
 
         String createdFormatted = order.getCreatedAt() != null
-            ? order.getCreatedAt().format(FMT_DATETIME) : "—";
-        String desiredDate = formatDateStr(order.getOrderDate());
+            ? OrderUiSupport.formatDateTime(order.getCreatedAt()) : "—";
+        String desiredDate = OrderUiSupport.formatDate(order.getOrderDate());
         String desiredInterval = order.getDeliveryTimeInterval();
         String desiredFull = desiredDate
             + (desiredInterval != null && !desiredInterval.isEmpty() ? "  " + desiredInterval : "");
-        String scheduledDate = formatDateStr(order.getPlannedDeliveryDate());
+        String scheduledDate = OrderUiSupport.formatDate(order.getPlannedDeliveryDate());
         String scheduledInterval = order.getPlannedDeliveryInterval();
         String scheduledFull = (order.getPlannedDeliveryDate() != null && !order.getPlannedDeliveryDate().isEmpty())
             ? scheduledDate + (scheduledInterval != null && !scheduledInterval.isEmpty() ? "  " + scheduledInterval : "")
@@ -346,7 +366,7 @@ public class AdminOrdersView {
             infoRow("💬 Комментарий:", order.getComment() != null ? order.getComment() : "—")
         );
 
-        Label statusBadge = styledStatusBadge(order.getStatus());
+        Label statusBadge = OrderUiSupport.statusBadge(order.getStatus());
         statusBadge.setStyle(statusBadge.getStyle() + "-fx-font-size:13px;");
         HBox statusRow = new HBox(8, sectionLabel("🔄 Статус:"), statusBadge);
         statusRow.setAlignment(Pos.CENTER_LEFT);
@@ -408,8 +428,8 @@ public class AdminOrdersView {
         content.getChildren().add(sectionLabel("📜 История статусов:"));
         List<OrderStatusHistory> hist = orderService.getStatusHistory(order.getId());
         for (OrderStatusHistory h : hist) {
-            String changedAt = formatDateTimeStr(h.getChangedAt());
-            String c = statusColor(h.getStatus());
+            String changedAt = OrderUiSupport.formatDateTime(h.getChangedAt());
+            String c = OrderUiSupport.statusColor(h.getStatus());
             Label statusLbl = new Label(h.getStatus());
             statusLbl.setStyle(
                 "-fx-background-color:" + c + ";-fx-text-fill:-th-cream;" +
@@ -458,37 +478,6 @@ public class AdminOrdersView {
         return row;
     }
 
-    /** Форматирует строку даты из БД в dd.MM.yyyy */
-    private String formatDateStr(String raw) {
-        if (raw == null || raw.isEmpty()) return "—";
-        try {
-            // Пробуем yyyy-MM-dd
-            LocalDate d = LocalDate.parse(raw.substring(0, Math.min(10, raw.length())));
-            return d.format(FMT_DATE);
-        } catch (Exception e) {
-            return raw;
-        }
-    }
-
-    /** Форматирует строку даты-времени из БД в dd.MM.yyyy HH:mm */
-    private String formatDateTimeStr(String raw) {
-        if (raw == null || raw.isEmpty()) return "—";
-        try {
-            String normalized = raw.replace("T", " ").replaceAll("\\.\\d+$", "");
-            if (normalized.length() >= 19) {
-                LocalDateTime ldt = LocalDateTime.parse(normalized.substring(0, 19), DB_FMT);
-                return ldt.format(FMT_DATETIME);
-            } else if (normalized.length() >= 16) {
-                LocalDateTime ldt = LocalDateTime.parse(normalized.substring(0, 16),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                return ldt.format(FMT_DATETIME);
-            }
-            return raw;
-        } catch (Exception e) {
-            return raw;
-        }
-    }
-
     /** Устанавливает подсказку (tooltip) на заголовок столбца таблицы */
     private <T> void addTooltip(TableColumn<Order, T> col, String text) {
         Label label = new Label(col.getText());
@@ -498,30 +487,4 @@ public class AdminOrdersView {
         col.setText("");
     }
 
-    /** Цвет статуса заказа (единый источник для всех UI элементов) */
-    private static String statusColor(String status) {
-        if (status == null) return "#6b7280";
-        return switch (status) {
-            case "Новый"       -> "#3b82f6";
-            case "В обработке" -> "#f97316";
-            case "Подтверждён" -> "#a855f7";
-            case "Собран"      -> "#eab308";
-            case "Отправлен"   -> "#ec4899";
-            case "Доставлен"   -> "#22c55e";
-            case "Завершён"    -> "#14b8a6";
-            case "Отменён"     -> "#ef4444";
-            default          -> "#6b7280";
-        };
-    }
-
-    /** Создаёт стилизованный бейдж статуса заказа */
-    private static Label styledStatusBadge(String status) {
-        String c = statusColor(status);
-        Label badge = new Label(status);
-        badge.setStyle(
-            "-fx-background-color:" + c + ";-fx-text-fill:-th-cream;" +
-            "-fx-font-weight:bold;-fx-padding:2 8;-fx-background-radius:6;-fx-font-size:13px;"
-        );
-        return badge;
-    }
 }
